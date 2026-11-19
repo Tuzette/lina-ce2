@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maths · Le cahier de Lina</title>
+<link rel="stylesheet" href="../commun/style.css">
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<input type="file" id="fichier" accept=".json,application/json" hidden>
+<script src="../commun/moteur.js"></script>
+<script>
+"use strict";
+/* ============ CALCUL MENTAL · FICHE 2 ============
+   Chaque exercice = une fabrique de calculs {cons, q, r, rappel, astuce, pieges}.
+   exo() en tire deux niveaux : facile (3 réponses au choix) et difficile (saisie). */
+const CH2 = "Calcul mental · Fiche 2";
+const hasard = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const DIX = [1,2,3,4,5,6,7,8,9,10];
+const NIVEAUX = [
+  {en:"facile", fr:"Facile", d:"3 réponses au choix", e:"🌸"},
+  {en:"dur", fr:"Difficile", d:"j'écris le résultat", e:"🚀"},
+];
+const QUESTION = s => s.includes("=") ? s.replace("?", `<span class="fluo">?</span>`) : s;
+
+// pioche sans répétition tant que le paquet n'est pas vide
+function paquet(fab){ let pile = []; return () => { if (!pile.length) pile = melange(fab()); return pile.pop(); }; }
+function niveaux(pioche){
+  return {
+    facile: () => { const c = pioche();
+      const faux = melange([...new Set(c.pieges.filter(v => v > 0 && v !== c.r))]).slice(0, 2);
+      return { kind:"qcm", consigne:c.cons + " Choisis la bonne réponse.", html:QUESTION(c.q),
+        choix:melange([c.r, ...faux].map(String)), bonne:String(c.r), rappel:c.rappel, astuce:c.astuce }; },
+    dur: () => { const c = pioche();
+      return { kind:"texte", consigne:c.cons + " Écris le résultat.", html:QUESTION(c.q),
+        nombre:c.r, bonne:String(c.r), rappel:c.rappel, astuce:c.astuce }; },
+  };
+}
+const exo = fab => { const a = niveaux(paquet(fab)), b = niveaux(paquet(fab)); return { facile:a.facile, dur:b.dur }; };
+
+/* ---- fabriques ---- */
+const compte = (t, n) => DIX.slice(0, n).map(i => t*i).join(", ");
+function table(t, inconnu = true){
+  const l = DIX.map(n => ({ cons:"Calcule de tête.", q:`${t} × ${n} = ?`, r:t*n, rappel:`${t} × ${n} = ${t*n}`,
+    astuce:`Compte de ${t} en ${t} : ${compte(t, n)}.`, pieges:[t*n+t, t*n-t, t*n+1, t*n-1, t*n+2] }));
+  if (inconnu) DIX.forEach(n => l.push({ cons:"Trouve le nombre qui manque.", q:`${t} × ? = ${t*n}`, r:n, rappel:`${t} × ${n} = ${t*n}`,
+    astuce:`Récite la table de ${t} jusqu'à ${t*n} : ${compte(t, n)}. Il faut ${n} fois ${t}.`, pieges:[n+1, n-1, n+2, n-2] }));
+  return l;
+}
+const tables = (...ts) => () => ts.flatMap(t => table(t));
+// un nombre de départ au hasard (parfois à 3 chiffres, comme 146 dans la fiche)
+const depart = () => Math.random() < 0.25 ? hasard(100, 170) : hasard(11, 99);
+function ajout(liste){ return () => {
+  const l = [], vus = new Set();
+  liste.forEach(k => { for (let i = 0; i < 6; i++){ const a = depart(); if (vus.has(a+"+"+k)) continue; vus.add(a+"+"+k);
+    const d = 10 - k % 10, rond = k + d, r = a + k;   // 9 → 10 − 1 ; 8 → 10 − 2
+    l.push({ cons:"Calcule de tête.", q:`${a} + ${k} = ?`, r, rappel:`${a} + ${k} = ${r}`,
+      astuce:`${a} + ${k} = ${a} + ${rond} − ${d} = ${a+rond} − ${d} = ${r}`, pieges:[r+d, r+2*d, r-10, r+10] }); } });
+  return l; }; }
+function retrait(liste){ return () => {
+  const l = [], vus = new Set();
+  liste.forEach(k => { for (let i = 0; i < 6; i++){ const a = hasard(k + 3, 99); if (vus.has(a+"-"+k)) continue; vus.add(a+"-"+k);
+    const rond = k + 1, r = a - k;
+    l.push({ cons:"Calcule de tête.", q:`${a} − ${k} = ?`, r, rappel:`${a} − ${k} = ${r}`,
+      astuce:`${a} − ${k} = ${a} − ${rond} + 1 = ${a-rond} + 1 = ${r}`, pieges:[r-1, r-2, r+10, r-10] }); } });
+  return l; }; }
+function combien(){
+  return [2,4,5,10].flatMap(t => DIX.map(n => Math.random() < 0.5
+    ? { cons:"Réponds.", q:`Combien de fois ${t} dans ${t*n} ?`, r:n, rappel:`${n} fois, car ${t} × ${n} = ${t*n}`,
+        astuce:`Cherche dans la table de ${t} : ${t} × ${n} = ${t*n}.`, pieges:[n+1, n-1, n+2, n-2] }
+    : { cons:"Réponds.", q:`Combien de paquets de ${t} dans ${t*n} ?`, r:n, rappel:`${n} paquets, car ${t} × ${n} = ${t*n}`,
+        astuce:`Cherche dans la table de ${t} : ${t} × ${n} = ${t*n}.`, pieges:[n+1, n-1, n+2, n-2] }));
+}
+// bilan : un calcul de chaque exercice à tour de rôle, dans un ordre mélangé
+function melangeExos(fabs){
+  const make = () => { const pioches = fabs.map(paquet); let ordre = [];
+    return () => { if (!ordre.length) ordre = melange(pioches); return ordre.pop()(); }; };
+  const a = niveaux(make()), b = niveaux(make()); return { facile:a.facile, dur:b.dur };
+}
+
+/* ---- méthodes (exemples de la fiche) ---- */
+const tableHtml = t => `<div class="calc tablemul">${DIX.map(n => `<span>${t} × ${n} = <b>${t*n}</b></span>`).join("")}</div>`;
+const tablesHtml = ts => `<div style="overflow-x:auto"><table class="regle"><thead><tr>${ts.map(t => `<th>Table de ${t}</th>`).join("")}</tr></thead>
+  <tbody>${DIX.map(n => `<tr>${ts.map(t => `<td>${t} × ${n} = <b>${t*n}</b></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+const M_AJ9 = `<div class="calc">+ 9 = + 10 − 1<br>+ 19 = + 20 − 1<br>+ 29 = + 30 − 1<br>+ 39 = + 40 − 1</div>
+  <div class="calc">68 + 9 = 68 + 10 − 1 = 78 − 1 = <b>77</b><br>73 + 19 = 73 + 20 − 1 = 93 − 1 = <b>92</b><br>146 + 29 = 146 + 30 − 1 = 176 − 1 = <b>175</b></div>`;
+const M_AJ8 = `<div class="calc">+ 8 = + 10 − 2<br>+ 18 = + 20 − 2<br>+ 28 = + 30 − 2<br>+ 38 = + 40 − 2</div>
+  <div class="calc">27 + 8 = 27 + 10 − 2 = 37 − 2 = <b>35</b><br>64 + 18 = 64 + 20 − 2 = 84 − 2 = <b>82</b></div>`;
+const M_SO9 = `<div class="calc">− 9 = − 10 + 1<br>− 19 = − 20 + 1<br>− 29 = − 30 + 1<br>− 39 = − 40 + 1</div>
+  <div class="calc">27 − 9 = 27 − 10 + 1 = 17 + 1 = <b>18</b><br>75 − 29 = 75 − 30 + 1 = 45 + 1 = <b>46</b></div>
+  <p class="doux">On enlève un peu trop, alors on rajoute 1.</p>`;
+
+/* ---- les exercices ---- */
+const FICHE2 = [
+  { id:"m21", nom:"Fiche 2 - 1 · Table de multiplication par 4", e:"4️⃣", fab:() => table(4),
+    regle:`<div class="calc">Exemples : 4 × 5 = ? &nbsp;·&nbsp; 4 × ? = 12</div>${tableHtml(4)}` },
+  { id:"m22", nom:"Fiche 2 - 2 · Ajouter 9, 19, 29 ou 39", e:"➕", fab:ajout([9,19,29,39]), regle:M_AJ9 },
+  { id:"m23", nom:"Fiche 2 - 3 · Ajouter 8, 18, 28, 38", e:"🧮", fab:ajout([8,18,28,38]), regle:M_AJ8 },
+  { id:"m24", nom:"Fiche 2 - 4 · Table de multiplication par 3", e:"3️⃣", fab:() => table(3),
+    regle:`<div class="calc">Exemples : 3 × 6 = ? &nbsp;·&nbsp; 3 × ? = 27</div>${tableHtml(3)}` },
+  { id:"m25", nom:"Fiche 2 - 5 · Soustraire 9, 19, 29 ou 39", e:"➖", fab:retrait([9,19,29,39]), regle:M_SO9 },
+  { id:"m26", nom:"Fiche 2 - 6 · Tables de multiplication par 2, 4, 5 et 10", e:"📦", fab:combien,
+    regle:`<div class="calc">Combien de fois 5 dans 25 ?<br>Je cherche dans la table de 5 : 5 × 5 = 25. <b>5 fois.</b></div>
+      <div class="calc">Combien de paquets de 4 dans 16 ?<br>Je cherche dans la table de 4 : 4 × 4 = 16. <b>4 paquets.</b></div>${tablesHtml([2,4,5,10])}` },
+  { id:"m27", nom:"Fiche 2 - 7 · Tables de multiplication de 2, 3, 4, 5 et 10", e:"✖️", fab:tables(2,3,4,5,10), regle:tablesHtml([2,3,4,5,10]) },
+  { id:"m28", nom:"Fiche 2 - 8 · Révisions", e:"🔁",
+    fab:() => [...ajout([8,9,18,19,28,29,38,39])(), ...retrait([9,19,29,39])()], regle:M_AJ9 + M_AJ8 + M_SO9 },
+];
+FICHE2.forEach(x => THEMES.push({ id:x.id, chapitre:CH2, nom:x.nom, titre:x.nom, matiere:"Maths", e:x.e, c:"var(--maths)",
+  gram:true, muet:true, maitrise:5, unite:"niveaux", nb:12, defi:false, regle:x.regle, mots:NIVEAUX, gen:exo(x.fab) }));
+
+THEMES.push({ id:"m2b", chapitre:CH2, nom:"Bilan de la fiche 2", titre:"Bilan de la fiche 2", matiere:"Maths", e:"🏆", c:"var(--maths)",
+  gram:true, muet:true, maitrise:5, unite:"niveaux", nb:15, defi:false, mots:NIVEAUX,
+  gen:melangeExos([() => table(4), ajout([9,19,29,39]), ajout([8,18,28,38]), () => table(3), retrait([9,19,29,39]), combien, tables(2,3,4,5,10)]) });
+
+demarrer({ titre:"Maths", e:"🔢", chapitres:[CH2] });
+</script>
+</body>
+</html>

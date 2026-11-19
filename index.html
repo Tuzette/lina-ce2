@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le cahier de Lina</title>
+<link rel="stylesheet" href="commun/style.css">
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script>
+document.getElementById("app").innerHTML = `<div class="pile">
+  <div class="entete"><div><h1>💜 Le cahier de Lina</h1><p class="doux">Choisis ta matière !</p></div></div>
+  <div class="matieres">
+    <a class="mat" style="--c:var(--maths)" href="maths/"><span class="gros" aria-hidden="true">🔢</span><span><h2>Maths</h2><span class="doux sous">Calcul mental</span></span></a>
+  </div>
+</div>`;
+</script>
+</body>
+</html>
