@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dictée · Le cahier de Lina</title>
+<link rel="stylesheet" href="../commun/style.css">
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<input type="file" id="fichier" accept=".json,application/json" hidden>
+<script src="../commun/moteur.js"></script>
+<script>
+"use strict";
+/* ============ DICTÉES DE MOTS ============
+   [mot tel qu'il faut l'écrire, indice facultatif affiché pour les mots qui se prononcent comme d'autres] */
+const VERBE = "un verbe à l'infinitif";
+const mots = l => l.map(([en, indice]) => ({ en, fr:"", indice }));
+
+/* ---- 9 · La lettre e (liste + mémo) ---- */
+const L9A = mots([["une montagne"], ["plus", "comme dans : plus grand"], ["haut", "le contraire de bas"], ["se situer", VERBE], ["le Tibet"]]);
+const L9B = mots([["plein", "le contraire de vide"], ["rêver", VERBE], ["célèbre"], ["grimper", VERBE], ["dangereux"]]);
+const M9  = mots([["le renard"], ["le marché"], ["chez", "comme dans : chez moi"], ["chanter", VERBE], ["la laitue"],
+  ["beau", "comme dans : il fait beau"], ["lent", "le contraire de rapide"], ["emballer", VERBE], ["la neige"], ["le robinet"],
+  ["la fève"], ["la fête"], ["Noël"], ["le feu"], ["un œuf"], ["plein", "le contraire de vide"]]);
+const ids = l => l.map(w => w.en);
+THEMES.push({ id:"d9", nom:"9 · La lettre e", e:"🟣", c:"var(--dictee)", dictee:true, muet:true, maitrise:2,
+  mots:[...L9A, ...L9B, ...M9.filter(w => !ids(L9B).includes(w.en))],
+  parties:[
+    { id:"l9a", nom:"Liste 9 •", e:"✏️", mots:ids(L9A) },
+    { id:"l9b", nom:"Liste 9 ••", e:"✏️", mots:ids(L9B) },
+    { id:"m9",  nom:"Les mots du mémo", e:"🗂️", mots:ids(M9) },
+    { id:"t9",  nom:"Tout mélangé", e:"🏆" },
+  ] });
+
+demarrer({ titre:"Dictée", e:"✏️" });
+</script>
+</body>
+</html>

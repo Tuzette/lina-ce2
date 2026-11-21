@@ -30,7 +30,7 @@ with sync_playwright() as p:
     pg.goto(B); pg.wait_for_timeout(200)
     for m in PAGES:
         pg.goto(B + m); pg.wait_for_timeout(250)
-        th = pg.evaluate("THEMES.map(t=>({id:t.id,lien:lien(t),ch:t.chapitre?slug(t.chapitre):'',trous:!!t.trous,gen:!!t.gen,nb:t.nb||NB_Q,defi:t.defi!==false,modes:(t.mots||[]).map(w=>w.en),textes:t.trous?t.textes.map(x=>x.id):[]}))")
+        th = pg.evaluate("THEMES.map(t=>({id:t.id,lien:lien(t),ch:t.chapitre?slug(t.chapitre):'',trous:!!t.trous,gen:!!t.gen,dictee:!!t.dictee,parties:t.dictee?t.parties.map(p=>p.id):[],nb:t.nb||NB_Q,defi:t.defi!==false,modes:(t.mots||[]).map(w=>w.en),textes:t.trous?t.textes.map(x=>x.id):[]}))")
         ids = [t["id"] for t in th]
         if len(set(ids)) != len(ids): ko.append(f"{m} : id en double")
         if len({t["lien"] for t in th}) != len(th): ko.append(f"{m} : deux thèmes ont le même lien")
@@ -53,6 +53,21 @@ with sync_playwright() as p:
                                 pg.click(f'.trou[data-i="{i}"]')
                         pg.click("#ok"); r = pg.locator(".retourq").inner_text().split(" ")
                         if r[0] != r[2]: ko.append(f"{m}{t['id']}/{x} {niv} : {r[0]}/{r[2]}")
+            elif t["dictee"]:
+                for mode in t["parties"]:
+                    pg.goto(B + m + "#" + t["lien"]); pg.wait_for_timeout(100); pg.click(f'[data-mode="{mode}"]')
+                    try:
+                        faute = True
+                        while pg.locator("#rep").count():
+                            v = pg.evaluate("window.__dictee")
+                            pg.fill("#rep", "x" + v if faute else v); pg.click("#ok", timeout=2000)
+                            if faute and pg.locator(".retourq.ko .diff del").count() != 1: ko.append(f"{m}{t['id']}/{mode} : correction non affichée")
+                            faute = False; pg.click("#next", timeout=2000)
+                        txt = pg.locator("#app").inner_text()
+                        if "Refaire mes erreurs" not in txt: ko.append(f"{m}{t['id']}/{mode} : pas de bouton erreurs")
+                        pg.click("#err"); v = pg.evaluate("window.__dictee"); pg.fill("#rep", v); pg.click("#ok"); pg.click("#next")
+                        if "Parfait" not in pg.locator("#app").inner_text(): ko.append(f"{m}{t['id']}/{mode} : erreurs refaites mais pas parfait")
+                    except Exception as e: ko.append(f"{m}{t['id']}/{mode} : {str(e).splitlines()[0]}")
             elif t["gen"]:
                 pb = pg.evaluate(f"""()=>{{const t=THEMES.find(t=>t.id==='{t['id']}'),pb=[];for(const k in t.gen)for(let i=0;i<300;i++){{const q=t.gen[k]();
                   if(q.kind==='qcm'&&(!q.choix.includes(q.bonne)||new Set(q.choix).size!==q.choix.length))pb.push(k)}};return [...new Set(pb)]}}""")

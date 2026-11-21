@@ -269,15 +269,19 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 function toast(t){ const d=document.createElement("div"); d.className="toast"; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2200); }
 
 /* ---------- voix anglaise ---------- */
-let voix = null;
+let voix = null, voixFr = null;
 const parle = "speechSynthesis" in window;
 function chercheVoix(){ if(!parle) return; const v = speechSynthesis.getVoices();
-  voix = v.find(x=>/en-GB/i.test(x.lang)) || v.find(x=>/^en/i.test(x.lang)) || null; }
+  voix = v.find(x=>/en-GB/i.test(x.lang)) || v.find(x=>/^en/i.test(x.lang)) || null;
+  voixFr = v.find(x=>/fr-FR/i.test(x.lang)) || v.find(x=>/^fr/i.test(x.lang)) || null; }
 if (parle){ chercheVoix(); speechSynthesis.onvoiceschanged = chercheVoix; }
 function dire(t){ if(!parle) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t);
   u.lang="en-GB"; if(voix) u.voice=voix; u.rate=.85; speechSynthesis.speak(u); }
+function direFr(t, lent){ if(!parle) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t);
+  u.lang="fr-FR"; if(voixFr) u.voice=voixFr; u.rate = lent ? .55 : .8; speechSynthesis.speak(u); }
 const boutonSon = t => parle ? `<button class="hp" data-dire="${esc(t)}" aria-label="Écouter ${esc(t)}">🔊 Écouter</button>` : "";
-document.addEventListener("click", e => { const b=e.target.closest("[data-dire]"); if(b){ e.stopPropagation(); dire(b.dataset.dire); } });
+document.addEventListener("click", e => { const b=e.target.closest("[data-dire]"); if(b){ e.stopPropagation(); dire(b.dataset.dire); }
+  const f=e.target.closest("[data-fr]"); if(f){ e.stopPropagation(); direFr(f.dataset.fr); } });
 
 /* ---------- choix des mots : les moins connus d'abord ---------- */
 function tirage(t, n){
@@ -341,6 +345,7 @@ function ecranTheme(t){
   if (t.cle) return ecranCles(t);
   if (t.trous) return ecranSvt(t);
   if (t.gram) return ecranGram(t);
+  if (t.dictee) return ecranDictee(t);
   app.innerHTML = `<div class="pile" style="--c:${t.c}">
     <button class="retour" id="ret">← Accueil</button>
     <div class="entete"><h1>${t.e} ${t.nom}</h1><div class="compteur">⭐ ${acquis(t)} / ${t.mots.length}</div></div>
@@ -383,6 +388,7 @@ function cartes(t, i, liste){
 
 /* ---------- séries notées ---------- */
 function serie(t, mode){
+  if (t.dictee) return serieDictee(t, mode);
   if (t.gram){
     const comp = mode==="defi" ? melange(t.mots) : [t.mots.find(w => w.en===mode)];
     const qs = Array.from({length:t.nb||NB_Q}, (_,n) => { const w = comp[n % comp.length]; return {w, g:(t.gen||GRAM.GEN)[w.en]()}; });
@@ -404,6 +410,7 @@ function entete(s){
 
 function question(s){
   if (s.t.gram) return questionGram(s);
+  if (s.t.dictee) return questionDictee(s);
   const q = s.qs[s.i], w = q.w, t = s.t;
   let corps = "";
   if (q.type==="choix"){
@@ -488,8 +495,10 @@ function bilan(s){
     <div class="haut" style="justify-content:center;flex-wrap:wrap">
       <button class="btn clair" id="th">← ${s.t.nom}</button>
       <button class="btn" style="--c:${s.t.c}" id="enc">Rejouer</button>
+      ${s.t.dictee && bons<tot ? `<button class="btn" style="--c:${s.t.c}" id="err">🔁 Refaire mes erreurs</button>` : ""}
     </div></div>`;
   $("#th").onclick = () => ecranTheme(s.t); $("#enc").onclick = () => serie(s.t, s.mode);
+  if ($("#err")) $("#err").onclick = () => serieDictee(s.t, s.mode, s.qs.filter((q,n) => !s.res[n]).map(q => q.w));
 }
 
 
@@ -573,6 +582,92 @@ function questionGram(s){
       fin(s, rep.toLowerCase()===g.cible.toLowerCase(), esc(g.rappel), g.rappel);
     };
   }
+}
+
+/* ---------- dictée de mots (français) ----------
+   Thème : dictee:true, parties:[{id, nom, e, mots:[…]}] (une partie sans mots = tous les mots),
+   mots:[{en:"une montagne", fr:"", indice?, dit?}]  (en = orthographe attendue, dit = ce qui est prononcé si différent)
+   Orthographe stricte (accents compris) ; majuscule exigée seulement si le mot en a une ;
+   « oe » accepté pour « œ ». */
+function ecranDictee(t){
+  app.innerHTML = `<div class="pile" style="--c:${t.c}">
+    <button class="retour" id="ret">← Accueil</button>
+    <div class="entete"><h1>${t.e} ${t.nom}</h1><div class="compteur">⭐ ${acquis(t)} / ${t.mots.length}</div></div>
+    <p class="doux">Écoute le mot, écris-le, puis valide. Tu peux le réécouter autant de fois que tu veux.</p>
+    ${parle ? "" : `<div class="note">⚠️ Cet appareil ne sait pas lire à voix haute : la dictée ne fonctionnera pas ici.</div>`}
+    <div class="modes">
+      <button class="mode" data-mode="liste"><b>📖 Les mots à apprendre</b><span>Lis-les et écoute-les avant la dictée</span></button>
+      ${t.parties.map(p => `<button class="mode${p.mots ? "" : " defi"}" data-mode="${p.id}"><b>${p.e} ${esc(p.nom)}</b><span>Dictée de ${motsPartie(t,p).length} mots</span></button>`).join("")}
+      <button class="mode" data-mode="album"><b>🗂️ Mon album</b><span>Un mot réussi 2 fois = un autocollant</span></button>
+    </div></div>`;
+  $("#ret").onclick = accueil;
+  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
+    const m = b.dataset.mode; m==="album" ? album(t) : m==="liste" ? listeDictee(t) : serie(t, m);
+  });
+}
+const motsPartie = (t, p) => p.mots ? p.mots.map(m => t.mots.find(w => w.en===m)) : t.mots;
+function listeDictee(t){
+  app.innerHTML = `<div class="pile" style="--c:${t.c}">
+    <button class="retour" id="ret">← ${t.nom}</button><h1>📖 Les mots à apprendre</h1>
+    <p class="doux">Touche un mot pour l'écouter.</p>
+    ${t.parties.filter(p => p.mots).map(p => `<div class="calc"><h2 style="font-size:1.2rem;margin-bottom:6px">${p.e} ${esc(p.nom)}</h2>
+      ${motsPartie(t,p).map(w => `<button class="motdictee" data-fr="${esc(w.dit||w.en)}" aria-label="Écouter ${esc(w.en)}">🔊 ${esc(w.en)}</button>`).join("")}</div>`).join("")}
+    <button class="btn" style="--c:${t.c};align-self:flex-start" id="go">Je fais la dictée →</button></div>`;
+  $("#ret").onclick = () => ecranTheme(t); $("#go").onclick = () => serie(t, t.parties[0].id);
+}
+function serieDictee(t, mode, mots){
+  const p = t.parties.find(x => x.id===mode) || t.parties[0];
+  question({ t, mode:p.id, qs:melange(mots || motsPartie(t, p)).map(w => ({w})), i:0, res:[], nouveaux:[] });
+}
+function compareDictee(rep, mot){
+  const r = rep.trim().replace(/\s+/g," ").replace(/[’`]/g,"'");
+  const plat = x => x.replace(/œ/g,"oe").replace(/Œ/g,"Oe");
+  if (r===mot) return {ok:true};
+  const a = plat(r), b = plat(mot);
+  if (a.toLowerCase()!==b.toLowerCase()){
+    const mots = mot.split(" ");
+    if (mots.length>1 && plat(mots.slice(1).join(" ")).toLowerCase()===a.toLowerCase())
+      return {ok:false, astuce:`N'oublie pas le petit mot devant : « ${mots[0]} ».`};
+    return {ok:false};
+  }
+  if ([...b].some((c,n) => c!==c.toLowerCase() && a[n]===a[n].toLowerCase()))
+    return {ok:false, astuce:`${mot.replace(/^(le|la|les|un|une) /,"")} s'écrit avec une majuscule.`};
+  return {ok:true, note: /œ/.test(mot) && !/œ/.test(r) ? `Dans ce mot, le o et le e sont collés : ${mot}.` : ""};
+}
+// surligne les lettres qui diffèrent (plus longue sous-suite commune)
+function diffDictee(a, b){
+  const A=[...a], B=[...b], L=Array.from({length:A.length+1}, () => Array(B.length+1).fill(0));
+  for (let i=A.length-1;i>=0;i--) for (let j=B.length-1;j>=0;j--) L[i][j] = A[i]===B[j] ? L[i+1][j+1]+1 : Math.max(L[i+1][j], L[i][j+1]);
+  let i=0, j=0, ta="", tb="";
+  while (i<A.length || j<B.length){
+    if (i<A.length && j<B.length && A[i]===B[j]){ ta+=esc(A[i]); tb+=esc(B[j]); i++; j++; }
+    else if (j<B.length && (i>=A.length || L[i][j+1]>=L[i+1][j])){ tb+=`<mark>${esc(B[j])}</mark>`; j++; }
+    else { ta+=`<del>${esc(A[i])}</del>`; i++; }
+  }
+  return {ta, tb};
+}
+function questionDictee(s){
+  const q = s.qs[s.i], w = q.w, t = s.t, dit = w.dit || w.en;
+  window.__dictee = w.en;   // utilisé par outils/test.py
+  app.innerHTML = `<div class="pile" style="--c:${t.c}">${entete(s)}
+    <div class="question"><p class="consigne">Écoute bien, puis écris le mot.</p><div class="emo">🎧</div>
+      <div class="sons"><button class="btn" style="--c:${t.c}" id="son">🔊 Écouter</button><button class="btn clair" id="lent">🐢 Plus lentement</button></div>
+      ${w.indice ? `<p class="doux" style="margin-top:10px">💡 ${esc(w.indice)}</p>` : ""}</div>
+    <div class="saisie"><input id="rep" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Écris le mot ici…" aria-label="Ta réponse"><button class="btn" style="--c:${t.c}" id="ok">Valider</button></div>
+    <div id="fb"></div></div>`;
+  $("#ret").onclick = () => ecranTheme(t);
+  const inp = $("#rep");
+  $("#son").onclick = () => { direFr(dit); inp.focus(); };
+  $("#lent").onclick = () => { direFr(dit, true); inp.focus(); };
+  inp.focus(); setTimeout(() => direFr(dit), 300);
+  const valide = () => {
+    if (!inp.value.trim()) return; inp.disabled = true; $("#ok").disabled = true;
+    const c = compareDictee(inp.value, w.en), d = diffDictee(inp.value.trim(), w.en);
+    const rappel = c.ok ? `<b class="motok">${esc(w.en)}</b>${c.note ? `<br><span style="font-weight:400">💡 ${esc(c.note)}</span>` : ""}`
+      : `<b class="motok">${d.tb}</b><br><span style="font-weight:400">Tu as écrit : <span class="diff">${d.ta}</span></span>`;
+    fin(s, c.ok, rappel, "", c.astuce);
+  };
+  $("#ok").onclick = valide; inp.onkeydown = e => { if (e.key==="Enter") valide(); };
 }
 
 /* ---------- album ---------- */
