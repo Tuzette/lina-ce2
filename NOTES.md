@@ -4,7 +4,7 @@ Site statique (GitHub Pages), copie du moteur du site de Luka (luka-6eme) avec q
 À lire avant toute évolution, au lieu d'explorer le code.
 
 ## Arborescence
-- `index.html` : accueil, choix de la matière (Maths, Dictée).
+- `index.html` : accueil, choix de la matière (Maths, Dictée, Histoire).
 - `commun/moteur.js` (mécanique), `commun/style.css` (thème violet, mode sombre ; couleur `--maths`).
 - `maths/index.html`, `dictee/index.html` : contenu seul (couleurs `--maths`, `--dictee`). `outils/test.py` : test automatique.
 
@@ -14,7 +14,7 @@ Site statique (GitHub Pages), copie du moteur du site de Luka (luka-6eme) avec q
 - Les `id` des thèmes existants.
 
 ## Ids déjà pris
-maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2), m10c m10m m10v m10r m10s m10p m10k (Leçon 10), mmon1 … mmon5 (Utiliser la monnaie) · dictee : d9 (liste 9 · La lettre e).
+maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2), m10c m10m m10v m10r m10s m10p m10k (Leçon 10), mmon1 … mmon5 (Utiliser la monnaie) · dictee : d9 (liste 9 · La lettre e) · histoire : thème `hist`, textes h2, h3o, h3f, h4 (leçons 2 à 4).
 Convention : `m<n° fiche><n° exo>`, `m<n° fiche>b` pour le bilan.
 
 ## Ajouts au moteur (par rapport à luka-6eme)
@@ -39,6 +39,10 @@ Monnaie (chapitre `CHM = "Utiliser la monnaie"`) : sommes en centimes ; `euro(c)
 `porteMonnaie([valeurs])` dessine billets et pièces ; `niveauxEuro(fab)` gère les réponses en euros (`forme:"e"`, saisie
 vérifiée par `verifEuro`, « 3 € 5 » refusé, il faut « 3 € 05 »), en centimes (`"c"`) ou en euros ronds (`"n"`) ;
 `decompose(c)` = paiement avec le moins de pièces et billets.
+
+## Histoire (histoire/index.html)
+Un seul thème `hist` de type **leçon à trous** (`trous:true`) ; une leçon = un texte `{id, titre:"Leçon N · …", e, texte}`.
+`[mot]` = trou, `[mot|variante]` = variantes acceptées en difficile. Ajouter une leçon = ajouter un texte (nouvel id `h<n°>`).
 
 ## Dictées (dictee/index.html)
 `mots([["mot à écrire", "indice facultatif"], …])` ; thème `{id:"d<n° liste>", nom:"<n°> · <titre>", dictee:true, muet:true, maitrise:2, mots, parties:[{id, nom, e, mots:[…]}, {id, nom:"Tout mélangé"}]}`.

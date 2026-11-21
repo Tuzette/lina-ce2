@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Histoire · Le cahier de Lina</title>
+<link rel="stylesheet" href="../commun/style.css">
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<input type="file" id="fichier" accept=".json,application/json" hidden>
+<script src="../commun/moteur.js"></script>
+<script>
+"use strict";
+/* ============ LEÇONS À TROUS ============
+   [mot] = un trou ; [mot|autre] = autres réponses acceptées au niveau difficile. */
+THEMES.push({ id:"hist", nom:"Mes leçons d'histoire", titre:"Mes leçons d'histoire", matiere:"Histoire", e:"🦣", c:"var(--histoire)", trous:true,
+  textes:[
+    { id:"h2", titre:"Leçon 2 · L'origine de l'humanité", e:"🌍",
+      texte:`La [Préhistoire] commence avec l'[apparition] de l'[homme] et dure jusqu'à l'[invention] de l'[écriture].
+On découpe la préhistoire en deux périodes :
+• l'âge de la pierre [taillée] : le [Paléolithique] ;
+• l'âge de la pierre [polie] : le [Néolithique].
+Les premiers hommes vivaient en [Afrique]. Ils se sont ensuite installés progressivement sur [tous les continents]. On sait qu'ils étaient [bipèdes].
+
+Lexique
+bipède : qui [marche] sur [deux|2] [pieds].` },
+    { id:"h3o", titre:"Leçon 3 · Les premiers outils", e:"🪨",
+      texte:`À la période Paléolithique, les peuples de la préhistoire fabriquaient des [outils] en taillant des [pierres], comme des [bifaces].
+Les hommes utilisent progressivement d'autres matériaux comme le [bois] et l'[os]. Avec ces outils, ils perfectionnent leurs techniques de [chasse] et de [pêche]. Ils utilisent des [harpons], des [propulseurs], des [sagaies].
+
+Lexique
+un biface : une [pierre taillée] sur [2|deux] [faces], avec un bord [tranchant].` },
+    { id:"h3f", titre:"Leçon 3 · La maîtrise du feu", e:"🔥",
+      texte:`Il y a [600 000|600000] ans, ils ont découvert comment faire du [feu].
+Cela a amélioré leur mode de vie : l'[éclairage], le [chauffage], la [cuisson] de la viande, éloignement des [bêtes sauvages].
+Le feu a également développé la [vie en société] (regroupement près du foyer, communication et échanges).
+
+Lexique
+un foyer : un [endroit] où l'on fait du [feu].` },
+    { id:"h4", titre:"Leçon 4 · La vie au Paléolithique", e:"🏕️",
+      texte:`Les premiers peuples vivaient de la [chasse], de la [pêche] et de la [cueillette]. Ils chassaient en [groupe]. Ils étaient [nomades] et se déplaçaient pour [suivre le gibier].
+Ils construisaient des [huttes] en [branchages] (le plus souvent à l'entrée des [grottes]) ou des [tentes] avec des [peaux de bêtes].
+
+Lexique
+le gibier : les [animaux] qu'on chasse pour se [nourrir].
+nomade : qui n'a [pas] d'[habitation] [fixe] et se déplace sans cesse.` },
+  ] });
+
+demarrer({ titre:"Histoire", e:"🦣" });
+</script>
+</body>
+</html>
