@@ -14,7 +14,7 @@ Site statique (GitHub Pages), copie du moteur du site de Luka (luka-6eme) avec q
 - Les `id` des thèmes existants.
 
 ## Ids déjà pris
-maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2), m10c m10m m10v m10r m10s m10p m10k (Leçon 10) · dictee : d9 (liste 9 · La lettre e).
+maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2), m10c m10m m10v m10r m10s m10p m10k (Leçon 10), mmon1 … mmon5 (Utiliser la monnaie) · dictee : d9 (liste 9 · La lettre e).
 Convention : `m<n° fiche><n° exo>`, `m<n° fiche>b` pour le bilan.
 
 ## Ajouts au moteur (par rapport à luka-6eme)
@@ -34,6 +34,11 @@ Une fabrique renvoie des calculs `{cons, q, r, rappel, astuce, pieges}`.
 Leçon 10 : `regleSvg(d0, d1, A, B)` dessine une règle (cm) et un segment (mm) ; `niveauxMm` pour les réponses en cm et mm.
 Fabriques disponibles : `table(t)`, `tables(...)`, `ajout([k…])`, `retrait([k…])`, `combien()`, `melangeExos([...])` pour un bilan.
 Libellés : chapitre `"Calcul mental · Fiche N"`, thèmes `"Fiche N - n° · Titre de la fiche"`.
+
+Monnaie (chapitre `CHM = "Utiliser la monnaie"`) : sommes en centimes ; `euro(c)` écrit « 24 € 36 » / « 94 c » ;
+`porteMonnaie([valeurs])` dessine billets et pièces ; `niveauxEuro(fab)` gère les réponses en euros (`forme:"e"`, saisie
+vérifiée par `verifEuro`, « 3 € 5 » refusé, il faut « 3 € 05 »), en centimes (`"c"`) ou en euros ronds (`"n"`) ;
+`decompose(c)` = paiement avec le moins de pièces et billets.
 
 ## Dictées (dictee/index.html)
 `mots([["mot à écrire", "indice facultatif"], …])` ; thème `{id:"d<n° liste>", nom:"<n°> · <titre>", dictee:true, muet:true, maitrise:2, mots, parties:[{id, nom, e, mots:[…]}, {id, nom:"Tout mélangé"}]}`.

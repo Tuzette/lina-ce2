@@ -302,7 +302,189 @@ const so3 = retrait([9,19,29,39], 999), chrono = niveaux(paquet(so3));
 ].forEach(x => THEMES.push({ id:x.id, chapitre:CH10, nom:x.nom, titre:x.nom, matiere:"Maths", e:x.e, c:"var(--maths)",
   gram:true, muet:true, maitrise:5, unite:"niveaux", nb:x.nb || 12, defi:false, regle:x.regle, mots:x.mots || NIVEAUX, gen:x.gen, chrono:x.chrono }));
 
-demarrer({ titre:"Maths", e:"🔢", chapitres:[CH10, CH2] });
+/* ============ UTILISER LA MONNAIE ============
+   Toutes les sommes sont en centimes (2 436 = 24 € 36). */
+const CHM = "Utiliser la monnaie";
+const VALEURS = [10000, 5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
+const BILLETS = VALEURS.filter(v => v >= 500), PIECES = VALEURS.filter(v => v < 500);
+const deux = n => String(n).padStart(2, "0");
+// 2436 → « 24 € 36 » ; 400 → « 4 € » ; 94 → « 94 c »
+const euro = c => c < 100 ? `${c} c` : `${Math.floor(c/100)} €` + (c%100 ? ` ${deux(c%100)}` : "");
+const enC = c => `${nb(c)} c`;
+const unite = v => v >= 100 ? `${v/100} €` : `${v} c`;
+const nomV = (v, n = 1) => `${v >= 500 ? "billet" : "pièce"}${n > 1 ? "s" : ""} de ${unite(v)}`;
+const somme = l => l.reduce((a, b) => a + b, 0);
+// « 3 € 05 », « 3€05 », « 3 euros 5 c », « 94 c » ; « 3 € 5 » est refusé (il faut 05)
+function verifEuro(c){
+  return v => { v = v.toLowerCase().replace(/euros?/g, "€").replace(/centimes?/g, "c").replace(/\s/g, "");
+    let m = v.match(/^(\d+)€(?:(\d{1,2})(c?))?$/);
+    if (m){ if (m[2] && m[2].length===1 && m[2]!=="0" && !m[3]) return false;
+      return (+m[1])*100 + (+(m[2]||0)) === c; }
+    m = v.match(/^(\d+)c$/); return !!m && +m[1] === c; };
+}
+
+/* ---- dessin des pièces et billets ---- */
+const COUL_B = {500:"#B7B7B7", 1000:"#E58A8A", 2000:"#8FB2E8", 5000:"#F0A85A", 10000:"#7CC48A"};
+const TAILLE_P = {1:11, 2:12.5, 5:14, 10:13, 20:14.5, 50:16, 100:15, 200:17};
+function piece(v, x, y){
+  const r = TAILLE_P[v], t = v >= 100 ? `${v/100} €` : `${v} c`;
+  const fond = v <= 5 ? `<circle cx="${x}" cy="${y}" r="${r}" fill="#C47A45" stroke="#7A4421" stroke-width="1.5"/>`
+    : v < 100 ? `<circle cx="${x}" cy="${y}" r="${r}" fill="#E3C25A" stroke="#9A7B1F" stroke-width="1.5"/>`
+    : v===100 ? `<circle cx="${x}" cy="${y}" r="${r}" fill="#E3C25A" stroke="#9A7B1F" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="${r*0.68}" fill="#D2D6DC" stroke="#8C9198"/>`
+    : `<circle cx="${x}" cy="${y}" r="${r}" fill="#D2D6DC" stroke="#8C9198" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="${r*0.68}" fill="#E3C25A" stroke="#9A7B1F"/>`;
+  return fond + `<text x="${x}" y="${y+4}" text-anchor="middle" font-size="${r > 14 ? 11 : 9.5}" font-weight="700" fill="#2B2233" font-family="sans-serif">${t}</text>`;
+}
+function billet(v, x, y){
+  return `<rect x="${x}" y="${y}" width="72" height="38" rx="4" fill="${COUL_B[v]}" stroke="#55505A" stroke-width="1.2"/>
+    <rect x="${x+5}" y="${y+5}" width="62" height="28" rx="3" fill="none" stroke="#FFFFFF" stroke-opacity=".7"/>
+    <text x="${x+36}" y="${y+25}" text-anchor="middle" font-size="16" font-weight="700" fill="#2B2233" font-family="sans-serif">${v/100} €</text>`;
+}
+// dessine une liste de valeurs : les billets sur une ligne, les pièces en dessous
+function porteMonnaie(l){
+  const LARG = 240, parts = []; let y = 4, h = 0, w = 0;
+  const b = l.filter(v => v >= 500), p = l.filter(v => v < 500);
+  let x = 4;
+  b.forEach(v => { if (x + 72 > LARG){ x = 4; y += 46; } parts.push(billet(v, x, y)); x += 78; h = y + 40; w = Math.max(w, x - 2); });
+  if (b.length){ y += 48; }
+  x = 4;
+  p.forEach(v => { const d = 2*TAILLE_P[v]; if (x + d > LARG){ x = 4; y += 38; } parts.push(piece(v, x + d/2, y + 18)); x += d + 6; h = y + 38; w = Math.max(w, x - 2); });
+  const lab = l.map(v => nomV(v)).join(", ");
+  return `<svg viewBox="0 0 ${w + 4} ${h + 4}" style="width:${Math.round((w + 4)*1.3)}px;max-width:100%" role="img" aria-label="${lab}">${parts.join("")}</svg>`;
+}
+
+/* ---- 1. Compter une somme ---- */
+function compter(){
+  const l = [];
+  for (let i = 0; i < 30; i++){
+    const b = Array.from({length:hasard(i < 6 ? 0 : 1, 4)}, () => melange(BILLETS)[0]);
+    const p = Array.from({length:hasard(2, 6)}, () => melange(PIECES)[0]);
+    const v = [...melange(b).sort((x, y) => y - x), ...p.sort((x, y) => y - x)], r = somme(v);
+    if (r < 100) { i--; continue; }
+    const be = somme(v.filter(x => x >= 100)), ce = somme(v.filter(x => x < 100));
+    l.push({ cons:"Quelle somme y a-t-il ?", q:porteMonnaie(Math.random() < 0.5 ? v : [...melange(b), ...melange(p)]), r,
+      rappel:`Il y a ${euro(r)}.`,
+      astuce:(be ? `Les billets et les pièces en euros font ${be/100} €. ` : "") + `Les pièces en centimes font ${ce} c`
+        + (ce >= 100 ? ` = ${euro(ce)}` : "") + `. En tout : ${euro(r)}.`,
+      pieges:[r + 100, r - 100, r + 10, r - 10, r + 50, r - 50, r + 1000] });
+  }
+  return l;
+}
+/* ---- 2. Ranger des sommes ---- */
+const ecritS = c => c >= 100 && Math.random() < 0.6 ? euro(c) : enC(c);
+const rangeSommes = {
+  facile: () => {
+    const a = hasard(105, 990), b = Math.random() < 0.2 ? a : Math.max(101, a + melange([-1, 1])[0]*melange([1, 5, 10, 50, 90, 100])[0]);
+    let ea = ecritS(a), eb = ecritS(b);
+    if (ea.includes("€") === eb.includes("€")) { if (ea.includes("€")) eb = enC(b); else ea = euro(a); }
+    const signe = a < b ? "<" : a > b ? ">" : "=";
+    return { kind:"qcm", consigne:"Compare ces deux sommes : choisis <, > ou =.", html:`${ea} <span class="fluo">?</span> ${eb}`,
+      choix:["<", ">", "="], bonne:signe, rappel:`${ea} ${signe} ${eb}`,
+      astuce:`Écris tout en centimes pour comparer : ${ea} = ${enC(a)} et ${eb} = ${enC(b)}.` };
+  },
+  dur: () => {
+    let v; do { const base = hasard(150, 900); v = Array.from({length:4}, () => Math.max(101, base + hasard(-120, 120))); } while (new Set(v).size < 4);
+    let e; do { e = v.map(ecritS); } while (new Set(e).size < 4 || e.every(x => x.includes("€")) || e.every(x => !x.includes("€")));
+    const ordre = v.map((m, i) => [m, e[i]]).sort((x, y) => x[0] - y[0]);
+    return { kind:"ordre", consigne:"Range ces sommes de la plus petite à la plus grande : touche-les dans l'ordre.", html:"",
+      mots:e, cible:ordre.map(x => x[1]).join(" "), bonne:ordre.map(x => x[1]).join("|"), rappel:ordre.map(x => x[1]).join(" < "),
+      astuce:"En centimes : " + ordre.map(x => `${x[1]} = ${enC(x[0])}`).join(" ; ") + "." };
+  },
+};
+/* ---- 3. Payer avec le moins de pièces et de billets ---- */
+function decompose(c){ const n = {}; VALEURS.forEach(v => { n[v] = Math.floor(c / v); c %= v; }); return n; }
+function moins(){
+  const l = [];
+  for (let i = 0; i < 30; i++){
+    const c = hasard(1, i < 10 ? 60 : 300)*100 + (Math.random() < 0.15 ? 0 : hasard(1, 99)), n = decompose(c);
+    const pris_ = VALEURS.filter(v => n[v]), vide = VALEURS.filter(v => !n[v] && v <= c);
+    const v = Math.random() < 0.15 && vide.length ? melange(vide)[0] : melange(pris_)[0], r = n[v];
+    l.push({ cons:"On paie avec le moins possible de pièces et de billets.",
+      q:`Pour payer <b>${euro(c)}</b>, combien faut-il de ${nomV(v, 2)} ?<br>${porteMonnaie([v])}`, r,
+      rappel:`${euro(c)} = ` + pris_.map(x => `${n[x]} ${nomV(x, n[x])}`).join(" + ") + `. Il faut ${r} ${nomV(v, r)}.`,
+      astuce:"Commence par le plus grand billet possible, puis prends à chaque fois le plus grand billet ou la plus grande pièce qui ne dépasse pas ce qui reste.",
+      pieges:[r + 1, r - 1, r + 2, r === 0 ? 1 : 0] });
+  }
+  return l;
+}
+/* ---- 4. Faire 1 € ---- */
+function unEuro(){
+  const l = [], vus = new Set();
+  for (let i = 0; i < 40 && l.length < 30; i++){
+    const a = i < 8 ? hasard(1, 9)*10 : i < 14 ? hasard(1, 19)*5 : hasard(1, 99); if (vus.has(a)) continue; vus.add(a);
+    const r = 100 - a, d = a % 10 ? 10 - a % 10 : 0, piege = (10 - Math.floor(a/10))*10 + (a % 10 ? 10 - a % 10 : 0);
+    const avant = Math.random() < 0.75;
+    l.push({ cons:"Complète pour faire 1 €.", q: avant ? `${a} c + ? c = 1 €` : `? c + ${a} c = 1 €`, r,
+      rappel:`${a} c + ${r} c = 1 €`,
+      astuce: d ? `1 € = 100 c. ${a} c + ${d} c = ${a + d} c, puis ${a + d} c + ${100 - a - d} c = 100 c. Donc ${d} + ${100 - a - d} = ${r} c.`
+                : `1 € = 100 c. ${a/10} dizaines + ${r/10} dizaines = 10 dizaines. Donc ${r} c.`,
+      pieges:[piege, r + 10, r - 10, a].filter(x => x !== r) });
+  }
+  return l;
+}
+/* ---- 5. Euros et centimes ---- */
+function conversion(){
+  const l = [];
+  for (let i = 0; i < 10; i++){ const e = hasard(1, 12), c = i < 2 ? hasard(1, 9) : hasard(10, 99), r = e*100 + c;
+    l.push({ cons:"Convertis en centimes.", q:`${euro(r)} = ? c`, r, forme:"c", rappel:`${euro(r)} = ${enC(r)}`,
+      astuce:`1 € = 100 c, donc ${e} € = ${e*100} c, puis j'ajoute ${c} c : ${e*100} + ${c} = ${r} c.`, pieges:[e + c, e*10 + c, r + 100] }); }
+  for (let i = 0; i < 4; i++){ const e = hasard(2, 20), r = e*100;
+    l.push({ cons:"Convertis en centimes.", q:`${e} € = ? c`, r, forme:"c", rappel:`${e} € = ${enC(r)}`,
+      astuce:`1 € = 100 c, donc ${e} € = ${e} × 100 = ${r} c.`, pieges:[e*10, e*1000, r + 100] }); }
+  for (let i = 0; i < 10; i++){ const e = hasard(1, 12), c = i < 2 ? hasard(1, 9) : hasard(10, 99), r = e*100 + c;
+    l.push({ cons:"Écris en euros et centimes.", q:`${enC(r)} = ?`, r, forme:"e", rappel:`${enC(r)} = ${euro(r)}`,
+      astuce:`100 c = 1 €. Dans ${r} c, il y a ${e} fois 100 c, donc ${e} €, et il reste ${c} c : ${euro(r)}.`,
+      pieges:[(e*10 + Math.floor(c/10))*100 + (c%10)*10, r + 100, r - 100, e*100 + (c%10)*10 + Math.floor(c/10)] }); }
+  for (let i = 0; i < 4; i++){ const e = hasard(2, 20), r = e*100;
+    l.push({ cons:"Écris en euros.", q:`${enC(r)} = ? €`, r, forme:"n", rappel:`${enC(r)} = ${e} €`,
+      astuce:`100 c = 1 €. Dans ${r} c, il y a ${e} fois 100 c, donc ${e} €.`, pieges:[e*1000, r*100, (e + 10)*100] }); }
+  return l;
+}
+// réponses en euros (« 24 € 36 ») ou en centimes (nombre)
+function niveauxEuro(fab){
+  const pa = paquet(fab), pb = paquet(fab);
+  const txt = (c, x) => c.forme === "e" ? euro(x) : c.forme === "n" ? String(x/100) : c.forme === "c" ? String(x) : euro(x);
+  return {
+    facile: () => { const c = pa(), faux = pris([...new Set(c.pieges.filter(v => v > 0 && v !== c.r && (c.forme !== "e" || v >= 100)))], 2);
+      return { kind:"qcm", consigne:c.cons + " Choisis la bonne réponse.", html:QUESTION(c.q),
+        choix:melange([c.r, ...faux].map(v => txt(c, v))), bonne:txt(c, c.r), rappel:c.rappel, astuce:c.astuce }; },
+    dur: () => { const c = pb();
+      if (c.forme === "c") return { kind:"texte", consigne:c.cons + " Écris le nombre de centimes.", html:QUESTION(c.q), nombre:c.r, bonne:String(c.r), rappel:c.rappel, astuce:c.astuce };
+      if (c.forme === "n") return { kind:"texte", consigne:c.cons + " Écris le nombre d'euros.", html:QUESTION(c.q), nombre:c.r/100, bonne:String(c.r/100), rappel:c.rappel, astuce:c.astuce };
+      return { kind:"texte", consigne:c.cons + " Écris la somme, par exemple 3 € 05.", html:QUESTION(c.q), verif:verifEuro(c.r), aide:"… € …", bonne:euro(c.r),
+        rappel:c.rappel, astuce:c.astuce + " Attention : 5 centimes s'écrivent 05 (3 € 05)." };
+    },
+  };
+}
+
+/* ---- méthodes ---- */
+const MM = {
+  compter:`<div class="calc">Je compte d'abord les <b>billets</b>, puis les <b>pièces en euros</b>, puis les <b>pièces en centimes</b>.</div>
+    <div class="question"><div class="phr">${porteMonnaie([2000, 500, 200, 100, 50, 20, 20, 1])}</div></div>
+    <div class="calc">Billets : 20 + 5 = 25 €<br>Pièces en euros : 2 + 1 = 3 €, donc 28 €<br>Centimes : 50 + 20 + 20 + 1 = 91 c<br>En tout : <b>28 € 91</b></div>
+    <p class="doux">Attention : 100 c = 1 €. Deux pièces de 50 c font 1 € !</p>`,
+  ranger:`<div class="calc">Pour comparer, j'écris tout en <b>centimes</b>.<br>2 € 50 = 250 c<br>2 € 05 = 205 c</div>
+    <div class="calc">198 c <b>&lt;</b> 2 € 05 <b>&lt;</b> 2 € 50 <b>&lt;</b> 300 c<br><span class="doux">&lt; veut dire « plus petit que », &gt; veut dire « plus grand que ».</span></div>`,
+  moins:`<div class="calc">Je veux payer <b>24 € 36</b> avec le moins possible de pièces et de billets.<br>
+    Je prends le plus grand billet qui ne dépasse pas : 1 billet de 20 €, il reste 4 € 36.<br>
+    Puis 2 pièces de 2 €, il reste 36 c.<br>Puis 1 pièce de 20 c, 1 de 10 c, 1 de 5 c et 1 de 1 c.</div>
+    <div class="question"><div class="phr">${porteMonnaie([2000, 200, 200, 20, 10, 5, 1])}</div></div>`,
+  unEuro:`<div class="calc"><b>1 € = 100 c</b><br>63 c + 7 c = 70 c<br>70 c + 30 c = 100 c<br>Donc 63 c + <b>37 c</b> = 1 €</div>
+    <div class="calc">70 c + <b>30 c</b> = 1 € (7 dizaines + 3 dizaines = 10 dizaines)</div>
+    <p class="doux">Vérifie toujours : les deux nombres ensemble doivent faire 100.</p>`,
+  conv:`<div class="calc"><b>1 € = 100 c</b><br>4 € 25 = 400 + 25 = <b>425 c</b><br>8 € 45 = <b>845 c</b><br>5 € = <b>500 c</b></div>
+    <div class="calc">184 c = <b>1 € 84</b><br>382 c = <b>3 € 82</b><br>400 c = <b>4 €</b></div>
+    <div class="calc">Attention : 3 € 05 = 300 + 5 = <b>305 c</b> (5 centimes s'écrivent 05).</div>`,
+};
+[
+  { id:"mmon1", nom:"Compter les pièces et les billets", e:"💶", gen:niveauxEuro(compter), regle:MM.compter },
+  { id:"mmon2", nom:"Ranger des sommes", e:"📊", gen:rangeSommes, mots:[{en:"facile", fr:"Facile", d:"compare deux sommes", e:"🌸"}, {en:"dur", fr:"Difficile", d:"range 4 sommes", e:"🚀"}], regle:MM.ranger },
+  { id:"mmon3", nom:"Payer avec le moins de pièces et de billets", e:"👛", gen:exo(moins), regle:MM.moins },
+  { id:"mmon4", nom:"Faire 1 €", e:"🪙", gen:exo(unEuro), regle:MM.unEuro },
+  { id:"mmon5", nom:"Euros et centimes", e:"🔁", gen:niveauxEuro(conversion), regle:MM.conv },
+].forEach(x => THEMES.push({ id:x.id, chapitre:CHM, nom:x.nom, titre:x.nom, matiere:"Maths", e:x.e, c:"var(--maths)",
+  gram:true, muet:true, maitrise:5, unite:"niveaux", nb:10, defi:false, regle:x.regle, mots:x.mots || NIVEAUX, gen:x.gen }));
+
+demarrer({ titre:"Maths", e:"🔢", chapitres:[CHM, CH10, CH2] });
 </script>
 </body>
 </html>
