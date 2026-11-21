@@ -391,8 +391,11 @@ function serie(t, mode){
   if (t.dictee) return serieDictee(t, mode);
   if (t.gram){
     const comp = mode==="defi" ? melange(t.mots) : [t.mots.find(w => w.en===mode)];
-    const qs = Array.from({length:t.nb||NB_Q}, (_,n) => { const w = comp[n % comp.length]; return {w, g:(t.gen||GRAM.GEN)[w.en]()}; });
-    return question({ t, mode, qs: mode==="defi" ? melange(qs) : qs, i:0, res:[], nouveaux:[] });
+    const ch = mode==="chrono" && t.chrono;
+    const qs = Array.from({length:ch ? ch.nb : (t.nb||NB_Q)}, (_,n) => { const w = comp[n % comp.length]; return {w, g:(t.gen||GRAM.GEN)[w.en]()}; });
+    const s = { t, mode, qs: mode==="defi" ? melange(qs) : qs, i:0, res:[], nouveaux:[] };
+    if (ch){ s.chrono = { fin: Date.now() + ch.duree*1000 }; tictac(s); }
+    return question(s);
   }
   const types = mode==="defi" ? ["choix","sens","ecrire"].concat(parle?["ecoute"]:[]) : [mode];
   let qs;
@@ -405,6 +408,7 @@ function serie(t, mode){
 
 function entete(s){
   return `<div class="haut"><button class="retour" id="ret">← ${s.t.nom}</button>
+    ${s.chrono ? `<span class="compteur" id="chrono">⏱️ ${resteChrono(s)}</span>` : ""}
     <div class="points">${s.qs.map((q,n) => `<i class="${n<s.res.length ? (s.res[n]?"ok":"ko") : (n===s.i?"ici":"")}"></i>`).join("")}</div></div>`;
 }
 
@@ -471,6 +475,7 @@ function lettresCachees(mot){
 function fin(s, juste, rappel, aDire, astuce){
   const q = s.qs[s.i];
   s.res.push(juste);
+  if (s.chrono){ (s.rappels = s.rappels || []).push(rappel); s.i++; return s.i < s.qs.length ? question(s) : bilanChrono(s); }
   if (juste && q.w){
     const cle = k(s.t, q.w), avant = etat.m[cle] || 0;
     const max = seuil(s.t);
@@ -544,9 +549,10 @@ function regle(t){
 
 function questionGram(s){
   const q = s.qs[s.i], g = q.g, t = s.t;
-  let corps = `<div class="question"><p class="consigne">${esc(g.consigne)}</p>${g.kind!=="ordre" ? `<div class="phr">${g.html}</div>` : ""}</div>`;
+  let corps = `<div class="question"><p class="consigne">${esc(g.consigne)}</p>${g.kind!=="ordre" || g.html ? `<div class="phr">${g.html||""}</div>` : ""}</div>`;
+  window.__q = g;
   if (g.kind==="qcm") corps += `<div class="choix ${g.choix.length>4?"six":""}">${g.choix.map(c => `<button data-v="${c}">${c}</button>`).join("")}</div>`;
-  if (g.kind==="texte") corps += `<div class="saisie"><input id="rep"${g.nombre!==undefined ? ' inputmode="numeric"' : ''} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Écris ici…" aria-label="Ta réponse"><button class="btn" style="--c:${t.c}" id="ok">Valider</button></div>`;
+  if (g.kind==="texte") corps += `<div class="saisie"><input id="rep"${g.nombre!==undefined ? ' inputmode="numeric"' : ''} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(g.aide||"Écris ici…")}" aria-label="Ta réponse"><button class="btn" style="--c:${t.c}" id="ok">Valider</button></div>`;
   if (g.kind==="ordre") corps += `<div class="ligne" id="ligne" aria-label="Ta phrase"></div>
     <div class="tuiles" id="tuiles">${melange(g.mots.map((m,n)=>({m,n}))).map(o => `<button class="tuile">${esc(o.m)}</button>`).join("")}</div>
     <button class="btn" style="--c:${t.c};align-self:center" id="ok">Valider</button>`;
@@ -565,7 +571,7 @@ function questionGram(s){
     const valide = () => {
       const v = inp.value.trim(); if (!v) return;
       inp.disabled = true; $("#ok").disabled = true;
-      const bon = g.nombre!==undefined ? Math.abs(parseFloat(v.replace(",",".").replace(/\s/g,"")) - g.nombre) < 1e-9 : g.ok.some(o => norm(o)===norm(v));
+      const bon = g.verif ? g.verif(v) : g.nombre!==undefined ? Math.abs(parseFloat(v.replace(",",".").replace(/\s/g,"")) - g.nombre) < 1e-9 : g.ok.some(o => norm(o)===norm(v));
       if (bon && g.q && !/\?\s*$/.test(v)) return fin(s, false, esc(g.rappel), g.rappel, "Presque ! Il manquait le point d'interrogation.");
       fin(s, bon, esc(g.rappel), g.rappel, g.astuce);
     };
@@ -579,7 +585,7 @@ function questionGram(s){
       const rep = [...ligne.querySelectorAll(".tuile")].map(b => b.textContent).join(" ");
       if (!rep) return;
       app.querySelectorAll(".tuile").forEach(b => b.disabled = true); $("#ok").disabled = true;
-      fin(s, rep.toLowerCase()===g.cible.toLowerCase(), esc(g.rappel), g.rappel);
+      fin(s, rep.toLowerCase()===g.cible.toLowerCase(), esc(g.rappel), g.rappel, g.astuce);
     };
   }
 }
@@ -668,6 +674,37 @@ function questionDictee(s){
     fin(s, c.ok, rappel, "", c.astuce);
   };
   $("#ok").onclick = valide; inp.onkeydown = e => { if (e.key==="Enter") valide(); };
+}
+
+/* ---------- calcul chrono ----------
+   Thème : chrono:{duree:180, nb:15, ceintures:[[4,"Jaune","#F2C200"], …]} et une partie {en:"chrono"} dans mots
+   (gen.chrono = le générateur de saisie). Pas de correction pendant le chrono : tout est corrigé à la fin. */
+const resteChrono = s => { const r = Math.max(0, Math.ceil((s.chrono.fin - Date.now())/1000)); return Math.floor(r/60) + ":" + String(r%60).padStart(2,"0"); };
+function tictac(s){
+  clearInterval(window.__tic);
+  window.__tic = setInterval(() => {
+    const el = document.getElementById("chrono");
+    if (!el || s.chrono.fini){ clearInterval(window.__tic); return; }
+    el.textContent = "⏱️ " + resteChrono(s);
+    if (Date.now() >= s.chrono.fin) bilanChrono(s);
+  }, 250);
+}
+function bilanChrono(s){
+  if (s.chrono.fini) return; s.chrono.fini = true; clearInterval(window.__tic);
+  const t = s.t, bons = s.res.filter(Boolean).length, tot = s.qs.length;
+  const c = t.chrono.ceintures.find(x => bons <= x[0]) || t.chrono.ceintures[t.chrono.ceintures.length-1];
+  const erreurs = s.res.map((r,n) => r ? null : n).filter(n => n!==null);
+  app.innerHTML = `<div class="pile bilan" style="--c:${t.c}">
+    <h2>${bons===tot ? "Parfait, rien à redire !" : s.res.length < tot ? "Temps écoulé !" : "Chrono terminé !"}</h2>
+    <div class="score">${bons} / ${tot}</div>
+    <p>Ta ceinture : <span class="ceinture" style="--ce:${c[2]}">🥋 ${c[1]}</span></p>
+    ${erreurs.length ? `<div class="calc" style="text-align:left"><b>Les corrections</b><br>${erreurs.map(n => `${s.qs[n].g.html.replace(/<span class="fluo">\?<\/span>|\?/, "")} <b>${s.rappels[n].split("= ").pop()}</b>`).join("<br>")}</div>` : ""}
+    ${s.res.length < tot ? `<p class="doux">Tu as fait ${s.res.length} calculs sur ${tot}. Entraîne-toi pour aller plus vite !</p>` : ""}
+    <div class="haut" style="justify-content:center;flex-wrap:wrap">
+      <button class="btn clair" id="th">← ${t.nom}</button>
+      <button class="btn" style="--c:${t.c}" id="enc">Rejouer</button>
+    </div></div>`;
+  $("#th").onclick = () => ecranTheme(t); $("#enc").onclick = () => serie(t, s.mode);
 }
 
 /* ---------- album ---------- */

@@ -58,9 +58,9 @@ function ajout(liste){ return () => {
     l.push({ cons:"Calcule de tête.", q:`${a} + ${k} = ?`, r, rappel:`${a} + ${k} = ${r}`,
       astuce:`${a} + ${k} = ${a} + ${rond} − ${d} = ${a+rond} − ${d} = ${r}`, pieges:[r+d, r+2*d, r-10, r+10] }); } });
   return l; }; }
-function retrait(liste){ return () => {
+function retrait(liste, max = 99){ return () => {
   const l = [], vus = new Set();
-  liste.forEach(k => { for (let i = 0; i < 6; i++){ const a = hasard(k + 3, 99); if (vus.has(a+"-"+k)) continue; vus.add(a+"-"+k);
+  liste.forEach(k => { for (let i = 0; i < 6; i++){ const a = max > 99 && Math.random() < 0.8 ? hasard(100, max) : hasard(k + 3, 99); if (vus.has(a+"-"+k)) continue; vus.add(a+"-"+k);
     const rond = k + 1, r = a - k;
     l.push({ cons:"Calcule de tête.", q:`${a} − ${k} = ?`, r, rappel:`${a} − ${k} = ${r}`,
       astuce:`${a} − ${k} = ${a} − ${rond} + 1 = ${a-rond} + 1 = ${r}`, pieges:[r-1, r-2, r+10, r-10] }); } });
@@ -114,7 +114,195 @@ THEMES.push({ id:"m2b", chapitre:CH2, nom:"Bilan de la fiche 2", titre:"Bilan de
   gram:true, muet:true, maitrise:5, unite:"niveaux", nb:15, defi:false, mots:NIVEAUX,
   gen:melangeExos([() => table(4), ajout([9,19,29,39]), ajout([8,18,28,38]), () => table(3), retrait([9,19,29,39]), combien, tables(2,3,4,5,10)]) });
 
-demarrer({ titre:"Maths", e:"🔢", chapitres:[CH2] });
+/* ============ LEÇON 10 · LONGUEURS ET PROBLÈMES ============ */
+const CH10 = "Leçon 10 · Longueurs et problèmes";
+const nb = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");     // 4100 → « 4 100 »
+const cmmm = mm => `${Math.floor(mm/10)} cm ${mm%10} mm`;
+const pris = (l, n) => melange(l).slice(0, n);
+
+// règle graduée de d0 à d1 cm, segment de A à B (en mm)
+function regleSvg(d0, d1, A, B){
+  const S = 44, P = 18, W = (d1-d0)*S + 2*P, x = m => +(P + (m - d0*10)*S/10).toFixed(1);
+  let traits = "", nombres = "";
+  for (let m = d0*10; m <= d1*10; m++){
+    const h = m%10===0 ? 16 : m%5===0 ? 11 : 7;
+    traits += `<line x1="${x(m)}" y1="46" x2="${x(m)}" y2="${46+h}"/>`;
+    if (m%10===0) nombres += `<text x="${x(m)}" y="80" text-anchor="middle">${m/10}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} 92" role="img" aria-label="Une règle graduée et un segment">
+    <rect x="${P-12}" y="46" width="${W-2*P+24}" height="42" rx="6" style="fill:color-mix(in srgb,var(--maths) 16%,var(--carte));stroke:var(--trait)"/>
+    <g style="stroke:var(--encre);stroke-width:1.2">${traits}</g>
+    <g style="fill:var(--encre);font:bold 17px system-ui,sans-serif">${nombres}</g>
+    <g style="stroke:var(--maths);stroke-width:3;stroke-linecap:round"><line x1="${x(A)}" y1="22" x2="${x(B)}" y2="22"/>
+      <line x1="${x(A)}" y1="14" x2="${x(A)}" y2="30"/><line x1="${x(B)}" y1="14" x2="${x(B)}" y2="30"/></g>
+    <g style="stroke:var(--encre-2);stroke-width:1;stroke-dasharray:3 3"><line x1="${x(A)}" y1="30" x2="${x(A)}" y2="46"/><line x1="${x(B)}" y1="30" x2="${x(B)}" y2="46"/></g>
+  </svg>`;
+}
+
+/* ---- 1. Mesurer en centimètres (règle cassée) ---- */
+function mesureCm(){
+  const l = [];
+  for (let i = 0; i < 24; i++){
+    const len = hasard(2, 7), a = hasard(3, 60), d0 = a - 1, d1 = a + len + 1, b = a + len;
+    l.push({ cons:"La règle est cassée ! Combien mesure le segment, en centimètres ?", q:regleSvg(d0, d1, a*10, b*10), r:len,
+      rappel:`Le segment mesure ${len} cm, car ${b} − ${a} = ${len}.`,
+      astuce:`Compte les bonds de 1 cm entre ${a} et ${b} (et pas les traits), ou calcule ${b} − ${a}.`, pieges:[len+1, len-1, b] });
+  }
+  return l;
+}
+/* ---- 2. Mesurer en cm et mm (règle à partir de 0) ---- */
+function verifCmMm(mm){
+  return v => { const m = v.toLowerCase().replace(/\s/g, "").match(/^(\d+)cm(?:(\d)(?:mm)?)?$/);
+    return !!m && (+m[1])*10 + (+(m[2]||0)) === mm; };
+}
+function mesureMm(){
+  const l = [];
+  for (let i = 0; i < 24; i++){
+    const c = hasard(1, 7), m = Math.random() < 0.2 ? 0 : hasard(1, 9), mm = c*10 + m;
+    l.push({ cons:"Combien mesure le segment ? Écris la mesure en cm et mm.", q:regleSvg(0, c + hasard(1, 2), 0, mm), r:mm, cmmm:true,
+      rappel:`Le segment mesure ${cmmm(mm)}.`,
+      astuce:`Compte d'abord les centimètres entiers (${c}), puis les petits traits des millimètres après le ${c} (${m}).`,
+      pieges:[mm+1, mm-1, mm+10, mm-10] });
+  }
+  return l;
+}
+/* ---- 3. Convertir cm et mm ---- */
+function conversions(){
+  const l = [];
+  for (let i = 0; i < 8; i++){ const c = hasard(1, 30);
+    l.push({ cons:"Convertis en millimètres.", q:`${c} cm = ? mm`, r:c*10, rappel:`${c} cm = ${nb(c*10)} mm`,
+      astuce:`1 cm = 10 mm, donc ${c} cm = ${c} × 10 = ${nb(c*10)} mm.`, pieges:[c, c*100, c*10+10] }); }
+  for (let i = 0; i < 10; i++){ const c = i < 4 ? hasard(10, 15) : hasard(1, 9), m = hasard(1, 9), r = c*10 + m;
+    l.push({ cons:"Convertis en millimètres.", q:`${c} cm ${m} mm = ? mm`, r, rappel:`${c} cm ${m} mm = ${r} mm`,
+      astuce:`${c} cm = ${c*10} mm, puis j'ajoute ${m} mm : ${c*10} + ${m} = ${r} mm.`, pieges:[c+m, c*100+m, r+10] }); }
+  for (let i = 0; i < 10; i++){ const n = i < 2 ? hasard(10, 50)*100 : hasard(2, 99)*10, r = n/10;
+    l.push({ cons:"Convertis en centimètres.", q:`${nb(n)} mm = ? cm`, r, rappel:`${nb(n)} mm = ${nb(r)} cm`,
+      astuce:`10 mm = 1 cm : je cherche combien de fois 10 dans ${nb(n)}, c'est ${nb(r)}.`, pieges:[n, n%100===0 ? n/100 : r+10, r-1] }); }
+  return l;
+}
+/* ---- 4. Comparer et ranger des longueurs ---- */
+const ecrit = (mm, gros) => mm%10===0 && (gros || Math.random() < 0.5) ? `${mm/10} cm` : mm%10!==0 && Math.random() < 0.5 ? cmmm(mm) : `${mm} mm`;
+const rangement = {
+  facile: () => {
+    const a = hasard(20, 95), b = Math.random() < 0.15 ? a : a + melange([-1, 1])[0]*hasard(1, 8);
+    let ea = ecrit(a), eb = ecrit(b);
+    if (!ea.includes("cm") && !eb.includes("cm")) eb = b%10 ? cmmm(b) : `${b/10} cm`;   // au moins une mesure avec des cm
+    if (ea===eb) eb = eb.includes("cm") ? `${b} mm` : (b%10 ? cmmm(b) : `${b/10} cm`);
+    const signe = a < b ? "<" : a > b ? ">" : "=";
+    return { kind:"qcm", consigne:"Compare ces deux longueurs : choisis <, > ou =.", html:`${ea} <span class="fluo">?</span> ${eb}`,
+      choix:["<", ">", "="], bonne:signe, rappel:`${ea} ${signe} ${eb}`,
+      astuce:`Écris tout en mm pour comparer : ${ea} = ${a} mm et ${eb} = ${b} mm.` };
+  },
+  dur: () => {
+    let v; do { const base = hasard(30, 80); v = pris(Array.from({length:25}, (_, i) => base - 12 + i), Math.random() < 0.3 ? 3 : 4);
+      if (v.length===3) v.push(hasard(9, 15)*10); } while (new Set(v).size < 4);
+    let e; do { e = v.map(m => ecrit(m, m > 99)); } while (new Set(e).size < 4 || e.every(x => !x.includes("cm")));
+    const ordre = v.map((m, i) => [m, e[i]]).sort((x, y) => x[0] - y[0]);
+    return { kind:"ordre", consigne:"Range ces longueurs du plus petit au plus grand : touche-les dans l'ordre.", html:"",
+      mots:e, cible:ordre.map(x => x[1]).join(" "), bonne:ordre.map(x => x[1]).join("|"), rappel:ordre.map(x => x[1]).join(" < "),
+      astuce:"En mm : " + ordre.map(x => `${x[1]} = ${x[0]} mm`).join(" ; ") + "." };
+  },
+};
+/* ---- 5. Observe et continue (suites de nombres) ---- */
+function suites(){
+  const l = [];
+  for (let i = 0; i < 24; i++){
+    const s = melange([5, 10, 100, 500, -5, -10, -100, -500])[0], u = Math.abs(s) < 100 ? 100 : 1000;
+    let r;
+    if (Math.random() < 0.6){ const borne = u===100 ? hasard(11, 99)*100 : hasard(2, 9)*1000; r = borne + hasard(0, 1)*s; }   // on passe une centaine ou un millier
+    else { r = hasard(1500, 9000); r -= r % Math.min(Math.abs(s), 100); }
+    const a = r - 3*s;
+    if (a < 1000 || a > 9999 || r < 1000 || r > 9999) { i--; continue; }
+    const signe = s > 0 ? "+" : "−", pas = Math.abs(s);
+    l.push({ cons:"Observe et trouve le nombre suivant.", q:`${nb(a)} → ${nb(a+s)} → ${nb(a+2*s)} → ?`, r,
+      rappel:`${nb(a+2*s)} ${signe} ${pas} = ${nb(r)}`,
+      astuce:`À chaque fois, on ${s > 0 ? "ajoute" : "enlève"} ${pas}. Attention quand on passe une centaine ou un millier !`,
+      pieges:[r+s, r+u, r-u] });
+  }
+  return l;
+}
+/* ---- 6. Problèmes : de plus, de moins ---- */
+const ENFANTS = [["Tom","il"],["Inès","elle"],["Léo","il"],["Jade","elle"],["Hugo","il"],["Chloé","elle"],["Nina","elle"],["Adam","il"],["Zoé","elle"],["Malo","il"]];
+const Maj = s => s[0].toUpperCase() + s.slice(1);
+const voy = n => /^[AEIOUYÉÈ]/i.test(n), que = n => voy(n) ? `qu'${n}` : `que ${n}`, de = n => voy(n) ? `d'${n}` : `de ${n}`;
+function problemes(){
+  const l = [];
+  for (let i = 0; i < 30; i++){
+    const [[A, pa], [B, pb]] = pris(ENFANTS, 2), plus = Math.random() < 0.5, c = i % 4, tour = Math.random() < 0.4;
+    const N = c===3 ? hasard(7, 12) : hasard(30, 450), D = c===3 ? hasard(21, 38) : hasard(8, Math.min(99, N - 5));
+    // « A a D de plus que B » → B a moins : N − D ; « A a D de moins que B » → B a plus : N + D
+    const r = plus ? N - D : N + D, piege = plus ? N + D : N - D, mot = plus ? "plus" : "moins";
+    if (c===3 && plus) { i--; continue; }   // âges : l'enfant a toujours moins que l'adulte
+    let texte, question, rep;
+    if (c===0){ texte = `${A} a ${N} billes. ${tour ? `C'est ${D} billes de ${mot} ${que(B)}` : `${Maj(pa)} a ${D} billes de ${mot} ${que(B)}`}.`;
+      question = `Combien de billes ${B} a-t-${pb} ?`; rep = `${B} a ${r} billes`; }
+    if (c===1){ texte = `Aux fléchettes, ${A} a marqué ${N} points. ${Maj(pa)} a marqué ${D} points de ${mot} ${que(B)}.`;
+      question = `Quel est le score ${de(B)} ?`; rep = `Le score ${de(B)} est de ${r} points`; }
+    if (c===2){ texte = `${A} a lu ${N} pages. ${tour ? `C'est ${D} pages de ${mot} ${que(B)}` : `${Maj(pa)} a lu ${D} pages de ${mot} ${que(B)}`}.`;
+      question = `Combien de pages ${B} a-t-${pb} lues ?`; rep = `${B} a lu ${r} pages`; }
+    if (c===3){ const adulte = melange(["son papa", "sa maman", "son oncle", "sa tante"])[0];
+      texte = `${A} a ${N} ans. ${tour ? `C'est ${D} ans de moins que ${adulte}` : `${Maj(pa)} a ${D} ans de moins que ${adulte}`}.`;
+      question = `Quel âge a ${adulte} ?`; rep = `${Maj(adulte)} a ${r} ans`; }
+    const qui = c===3 ? "l'adulte" : B;
+    l.push({ cons:"Lis bien le problème.", q:`<span style="font-weight:400">${texte}</span><br>${question}`, r,
+      rappel:`${rep} : ${N} ${plus ? "−" : "+"} ${D} = ${r}.`,
+      astuce: plus ? `${A} en a ${D} de plus, donc ${qui} en a ${D} de moins : ${N} − ${D} = ${r}.`
+                   : `${A} en a ${D} de moins, donc ${qui} en a ${D} de plus : ${N} + ${D} = ${r}.`,
+      pieges:[piege, r + 10, r - 10] });
+  }
+  return l;
+}
+// les mesures en cm et mm ont leurs propres réponses (texte « 4 cm 9 mm »)
+function niveauxMm(fab){
+  const pa = paquet(fab), pb = paquet(fab);
+  return {
+    facile: () => { const c = pa(), faux = pris([...new Set(c.pieges.filter(v => v >= 10 && v !== c.r))], 2);
+      return { kind:"qcm", consigne:c.cons, html:c.q, choix:melange([c.r, ...faux].map(cmmm)), bonne:cmmm(c.r), rappel:c.rappel, astuce:c.astuce }; },
+    dur: () => { const c = pb();
+      return { kind:"texte", consigne:c.cons, html:c.q, verif:verifCmMm(c.r), aide:"… cm … mm", bonne:cmmm(c.r), rappel:c.rappel, astuce:c.astuce }; },
+  };
+}
+
+/* ---- méthodes ---- */
+const SCHEMA = (h, b, nh, nb2, d) => `<div class="schema"><span>${h}</span><div class="barre-s" style="background:var(--maths)">${nh}</div>
+  <span>${b}</span><div style="display:flex;align-items:center;gap:8px"><div class="barre-s" style="background:var(--dictee);flex:0 0 65%">${nb2}</div><span>↔ ${d}</span></div></div>`;
+const M10 = {
+  cm:`<div class="calc">La règle est cassée : elle ne commence pas à 0.<br>Le segment va de 4 à 9.<br>Je compte les <b>bonds</b> de 1 cm : 5 bonds.<br>Ou je calcule : 9 − 4 = <b>5 cm</b>.</div>
+    <div class="question"><div class="phr">${regleSvg(2, 11, 40, 90)}</div></div>
+    <p class="doux">Attention : on compte les bonds, pas les traits !</p>`,
+  mm:`<div class="calc"><b>1 cm = 10 mm</b><br>Je compte les centimètres entiers, puis les petits traits des millimètres.<br>Ce segment mesure <b>3 cm 7 mm</b>.</div>
+    <div class="question"><div class="phr">${regleSvg(0, 5, 0, 37)}</div></div>`,
+  conv:`<div class="calc"><b>1 cm = 10 mm</b><br>4 cm = 40 mm<br>4 cm 3 mm = 40 + 3 = <b>43 mm</b><br>12 cm 5 mm = 120 + 5 = <b>125 mm</b><br>80 mm = <b>8 cm</b><br>250 mm = <b>25 cm</b></div>
+    <div class="calc">Attention : 10 cm 4 mm = 100 + 4 = <b>104 mm</b> (et pas 14 mm !)</div>`,
+  ranger:`<div class="calc">Pour comparer, j'écris tout en <b>mm</b>.<br>5 cm 2 mm = 52 mm<br>6 cm = 60 mm</div>
+    <div class="calc">49 mm <b>&lt;</b> 5 cm 2 mm <b>&lt;</b> 55 mm <b>&lt;</b> 6 cm<br><span class="doux">&lt; veut dire « plus petit que », &gt; veut dire « plus grand que ».</span></div>`,
+  suites:`<div class="calc">Je cherche ce qui change d'un nombre à l'autre.<br>2 980 → 2 990 → 3 000 → <b>3 010</b> (on ajoute 10)<br>4 200 → 4 100 → 4 000 → <b>3 900</b> (on enlève 100)</div>
+    <p class="doux">Attention quand on passe une centaine ou un millier : 6 010 − 10 = 6 000, puis 5 990.</p>`,
+  pb:`<div class="calc">Tom a 50 billes. Il a 20 billes <b>de plus</b> que Léa.<br>Combien de billes Léa a-t-elle ?</div>${SCHEMA("Tom", "Léa", "50", "?", "20")}
+    <div class="calc">Tom en a plus, donc Léa en a moins : 50 − 20 = <b>30 billes</b>.</div>
+    <div class="calc">Si Tom a 20 billes <b>de moins</b> que Léa, c'est Léa qui en a le plus : 50 + 20 = <b>70 billes</b>.</div>
+    <p class="doux">Fais un petit schéma : la plus grande barre, c'est celui qui en a le plus.</p>`,
+};
+const CEINTURES = [[4, "Jaune", "#D9A400"], [8, "Bleue", "#2F6FD6"], [12, "Rouge", "#D33A2C"], [15, "Noire", "#222222"]];
+const NIV_RANGER = [{en:"facile", fr:"Facile", d:"compare deux longueurs", e:"🌸"}, {en:"dur", fr:"Difficile", d:"range 4 longueurs", e:"🚀"}];
+const NIV_CHRONO = [...NIVEAUX, {en:"chrono", fr:"Calcul chrono", d:"3 minutes pour 15 calculs", e:"⏱️"}];
+const so3 = retrait([9,19,29,39], 999), chrono = niveaux(paquet(so3));
+
+[
+  { id:"m10c", nom:"Mesurer en centimètres", e:"📏", gen:exo(mesureCm), regle:M10.cm },
+  { id:"m10m", nom:"Mesurer en cm et mm", e:"📐", gen:niveauxMm(mesureMm), regle:M10.mm },
+  { id:"m10v", nom:"Convertir cm et mm", e:"🔁", gen:exo(conversions), regle:M10.conv },
+  { id:"m10r", nom:"Ranger des longueurs", e:"📊", gen:rangement, mots:NIV_RANGER, nb:10, regle:M10.ranger },
+  { id:"m10s", nom:"Observe et continue", e:"🔢", gen:exo(suites), regle:M10.suites },
+  { id:"m10p", nom:"Problèmes : de plus, de moins", e:"🎯", gen:exo(problemes), nb:10, regle:M10.pb },
+  { id:"m10k", nom:"Calcul chrono : soustraire 9, 19, 29 ou 39", e:"⏱️", gen:{ ...exo(so3), chrono:chrono.dur }, mots:NIV_CHRONO,
+    chrono:{ duree:180, nb:15, ceintures:CEINTURES },
+    regle:M_SO9 + `<div class="calc">Avec un grand nombre, c'est pareil :<br>254 − 19 = 254 − 20 + 1 = 234 + 1 = <b>235</b></div>
+      <div class="calc">⏱️ <b>Calcul chrono</b> : 15 calculs en 3 minutes.<br>Jusqu'à 4 : ceinture jaune · de 5 à 8 : bleue · de 9 à 12 : rouge · de 13 à 15 : noire</div>` },
+].forEach(x => THEMES.push({ id:x.id, chapitre:CH10, nom:x.nom, titre:x.nom, matiere:"Maths", e:x.e, c:"var(--maths)",
+  gram:true, muet:true, maitrise:5, unite:"niveaux", nb:x.nb || 12, defi:false, regle:x.regle, mots:x.mots || NIVEAUX, gen:x.gen, chrono:x.chrono }));
+
+demarrer({ titre:"Maths", e:"🔢", chapitres:[CH10, CH2] });
 </script>
 </body>
 </html>

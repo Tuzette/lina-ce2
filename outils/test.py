@@ -76,16 +76,17 @@ with sync_playwright() as p:
                     pg.goto(B + m + "#" + t["lien"]); pg.wait_for_timeout(100); pg.evaluate(ESPION)
                     pg.click(f'[data-mode="{mode}"]')
                     try:
-                        for _ in range(t["nb"]):
-                            if pg.locator("#rep").count():   # saisie : on tape la réponse enregistrée
-                                v = pg.evaluate(REPONSE.replace("find(v=>vals.includes(v))", "slice(-1)[0]"))
-                                if v is None: main.add(f"{m}{t['id']}/{mode}"); break
-                                pg.fill("#rep", v); pg.click("#ok", timeout=2000); pg.click("#next", timeout=2000); continue
-                            v = pg.evaluate(REPONSE) if pg.locator(".choix button").count() else None
+                        for _ in range(60):
+                            if not pg.locator("#ok, .choix button").count(): break
+                            v = pg.evaluate("window.__q && window.__q.bonne")
                             if v is None: main.add(f"{m}{t['id']}/{mode}"); break
-                            pg.click(f'.choix button[data-v="{v}"]', timeout=2000); pg.click("#next", timeout=2000)
-                        else:
-                          if "Parfait" not in pg.locator("#app").inner_text(): ko.append(f"{m}{t['id']}/{mode} : série pas parfaite")
+                            if pg.locator("#tuiles").count():
+                                for x in v.split("|"): pg.locator("#tuiles .tuile").filter(has_text=re.compile("^" + re.escape(x) + "$")).first.click()
+                                pg.click("#ok", timeout=2000)
+                            elif pg.locator("#rep").count(): pg.fill("#rep", v); pg.click("#ok", timeout=2000)
+                            else: pg.click(f'.choix button[data-v="{v}"]', timeout=2000)
+                            if pg.locator("#next").count(): pg.click("#next", timeout=2000)
+                        if f"{m}{t['id']}/{mode}" not in main and "Parfait" not in pg.locator("#app").inner_text(): ko.append(f"{m}{t['id']}/{mode} : série pas parfaite")
                     except Exception as e: ko.append(f"{m}{t['id']}/{mode} : {str(e).splitlines()[0]}")
     srv.shutdown()
 print("\n".join(["", "PROBLÈMES :"] + ko) if ko else "\nTout est OK ✔")

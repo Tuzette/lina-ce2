@@ -14,20 +14,24 @@ Site statique (GitHub Pages), copie du moteur du site de Luka (luka-6eme) avec q
 - Les `id` des thèmes existants.
 
 ## Ids déjà pris
-maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2) · dictee : d9 (liste 9 · La lettre e).
+maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2), m10c m10m m10v m10r m10s m10p m10k (Leçon 10) · dictee : d9 (liste 9 · La lettre e).
 Convention : `m<n° fiche><n° exo>`, `m<n° fiche>b` pour le bilan.
 
 ## Ajouts au moteur (par rapport à luka-6eme)
 - `nb` : nombre de questions d'une série (défaut 10).
 - `defi:false` : masque « Le grand défi ».
 - `regle:"<html>"` : bouton « 📖 La méthode » (écran avec les exemples de la fiche).
-- Saisie de nombre : clavier numérique sur mobile.
+- Saisie de nombre : clavier numérique sur mobile. Saisie libre : `verif(v)` (ex. « 4 cm 9 mm ») et `aide` (texte d'exemple).
+- **Calcul chrono** : partie `{en:"chrono"}` + `gen.chrono` + `chrono:{duree, nb, ceintures:[[max, nom, couleur]…]}` ;
+  pas de correction pendant le chrono, corrections et ceinture à la fin.
+- `window.__q` = question en cours (utilisé par outils/test.py).
 - Type **dictée** (`dictee:true`) : voix française (`direFr`), boutons Écouter / Plus lentement,
   correction lettre à lettre, « Refaire mes erreurs » en fin de série. Voir le modèle ci-dessous.
 
 ## Fiches de calcul mental (maths/index.html)
 Une fabrique renvoie des calculs `{cons, q, r, rappel, astuce, pieges}`.
 `exo(fabrique)` donne deux niveaux : `facile` (3 réponses au choix : la bonne + 2 pièges) et `dur` (saisie).
+Leçon 10 : `regleSvg(d0, d1, A, B)` dessine une règle (cm) et un segment (mm) ; `niveauxMm` pour les réponses en cm et mm.
 Fabriques disponibles : `table(t)`, `tables(...)`, `ajout([k…])`, `retrait([k…])`, `combien()`, `melangeExos([...])` pour un bilan.
 Libellés : chapitre `"Calcul mental · Fiche N"`, thèmes `"Fiche N - n° · Titre de la fiche"`.
 

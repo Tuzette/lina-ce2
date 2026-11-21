@@ -192,3 +192,9 @@ a.mat:hover{transform:translateY(-2px)} a.mat:active{transform:translateY(2px);b
 .motok{font-family:var(--f-main);font-size:1.3rem}
 .motok mark{background:var(--fluo);color:var(--fluo-texte);border-radius:3px}
 .diff del{color:var(--faux);text-decoration:line-through 2px}
+
+/* calcul chrono, règles graduées */
+.ceinture{display:inline-block;font-weight:700;padding:4px 14px;border-radius:999px;background:var(--ce);color:#fff;text-shadow:0 1px 2px #0006}
+.phr svg{width:100%;max-width:460px;height:auto;display:block;margin:6px auto 0}
+.schema{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;font-weight:700}
+.schema .barre-s{height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff}
