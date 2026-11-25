@@ -513,7 +513,7 @@ function ecranGram(t){
     <button class="retour" id="ret">← Accueil</button>
     <div class="entete"><h1>${t.e} ${t.titre||"The verb to be"}</h1><div class="compteur">⭐ ${acquis(t)} / ${t.mots.length}</div></div>
     <div class="modes">
-      ${t.id==="tb" || t.regle ? `<button class="mode" data-mode="regle"><b>📖 ${t.regle ? "La méthode" : "La règle"}</b><span>${t.regle ? "Ce qu'il faut savoir" : "Le tableau à connaître"}</span></button>` : ""}
+      ${t.id==="tb" || t.regle ? `<button class="mode" data-mode="regle"><b>📖 ${t.regle ? (t.regleNom||"La méthode") : "La règle"}</b><span>${t.regle ? "Ce qu'il faut savoir" : "Le tableau à connaître"}</span></button>` : ""}
       ${t.defi===false ? "" : `<button class="mode defi" data-mode="defi"><b>🏆 Le grand défi</b><span>${NB_Q} questions de tous les types, comme une évaluation</span></button>`}
       ${t.mots.map(w => `<button class="mode" data-mode="${w.en}"><b>${w.e} ${esc(w.fr)}</b><span>${w.d ? esc(w.d)+" · " : ""}${"●".repeat(niv(t,w))}${"○".repeat(seuil(t)-niv(t,w))}</span></button>`).join("")}
       <button class="mode" data-mode="album"><b>🗂️ Mon album</b><span>Une règle maîtrisée = un autocollant</span></button>
@@ -551,7 +551,8 @@ function questionGram(s){
   const q = s.qs[s.i], g = q.g, t = s.t;
   let corps = `<div class="question"><p class="consigne">${esc(g.consigne)}</p>${g.kind!=="ordre" || g.html ? `<div class="phr">${g.html||""}</div>` : ""}</div>`;
   window.__q = g;
-  if (g.kind==="qcm") corps += `<div class="choix ${g.choix.length>4?"six":""}">${g.choix.map(c => `<button data-v="${c}">${c}</button>`).join("")}</div>`;
+  if (g.kind==="qcm") corps += `<div class="choix ${g.choix.length>4?"six":""}">${g.choix.map(c => `<button data-v="${c}">${g.affiche ? g.affiche(c) : c}</button>`).join("")}</div>`;
+  if (g.kind==="colorier") corps += `<p class="doux" id="nbcol" style="text-align:center;margin:0">Parts coloriées : 0</p><button class="btn" style="--c:${t.c};align-self:center" id="ok">Valider</button>`;
   if (g.kind==="texte") corps += `<div class="saisie"><input id="rep"${g.nombre!==undefined ? ' inputmode="numeric"' : ''} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(g.aide||"Écris ici…")}" aria-label="Ta réponse"><button class="btn" style="--c:${t.c}" id="ok">Valider</button></div>`;
   if (g.kind==="ordre") corps += `<div class="ligne" id="ligne" aria-label="Ta phrase"></div>
     <div class="tuiles" id="tuiles">${melange(g.mots.map((m,n)=>({m,n}))).map(o => `<button class="tuile">${esc(o.m)}</button>`).join("")}</div>
@@ -576,6 +577,19 @@ function questionGram(s){
       fin(s, bon, esc(g.rappel), g.rappel, g.astuce);
     };
     $("#ok").onclick = valide; inp.onkeydown = e => { if (e.key==="Enter") valide(); };
+  }
+  if (g.kind==="colorier"){
+    // parts cliquables : .part[data-i][data-f] (f = n° de la figure) ; g.verif([[f,i]…]) ; g.sol = data-i à colorier
+    const parts = [...app.querySelectorAll(".part[data-i]")], compte = () => $("#nbcol").textContent = "Parts coloriées : " + app.querySelectorAll(".part.on").length;
+    parts.forEach(p => { p.setAttribute("role","button"); p.setAttribute("tabindex","0");
+      const bascule = () => { if (p.classList.contains("fige")) return; p.classList.toggle("on"); compte(); };
+      p.onclick = bascule; p.onkeydown = e => { if (e.key==="Enter" || e.key===" "){ e.preventDefault(); bascule(); } }; });
+    $("#ok").onclick = () => {
+      const on = parts.filter(p => p.classList.contains("on")).map(p => [+p.dataset.f, +p.dataset.i]);
+      if (!on.length) return;
+      parts.forEach(p => p.classList.add("fige")); $("#ok").disabled = true;
+      fin(s, g.verif(on), esc(g.rappel), g.rappel, g.astuce);
+    };
   }
   if (g.kind==="ordre"){
     const ligne = $("#ligne"), tuiles = $("#tuiles");

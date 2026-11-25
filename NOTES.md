@@ -14,7 +14,7 @@ Site statique (GitHub Pages), copie du moteur du site de Luka (luka-6eme) avec q
 - Les `id` des thèmes existants.
 
 ## Ids déjà pris
-maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2), m10c m10m m10v m10r m10s m10p m10k (Leçon 10), mmon1 … mmon5 (Utiliser la monnaie) · dictee : d9 (liste 9 · La lettre e) · histoire : thème `hist`, textes h2, h3o, h3f, h4 (leçons 2 à 4).
+maths : m21 … m28 (Fiche 2 - 1 à 8), m2b (bilan fiche 2), m10c m10m m10v m10r m10s m10p m10k (Leçon 10), mmon1 … mmon5 (Utiliser la monnaie), mfr1 mfr2 (Les fractions), mfr1 mfr2 (Les fractions) · dictee : d9 (liste 9 · La lettre e) · histoire : thème `hist`, textes h2, h3o, h3f, h4 (leçons 2 à 4).
 Convention : `m<n° fiche><n° exo>`, `m<n° fiche>b` pour le bilan.
 
 ## Ajouts au moteur (par rapport à luka-6eme)
@@ -25,8 +25,15 @@ Convention : `m<n° fiche><n° exo>`, `m<n° fiche>b` pour le bilan.
 - **Calcul chrono** : partie `{en:"chrono"}` + `gen.chrono` + `chrono:{duree, nb, ceintures:[[max, nom, couleur]…]}` ;
   pas de correction pendant le chrono, corrections et ceinture à la fin.
 - `window.__q` = question en cours (utilisé par outils/test.py).
+- Type **colorier** (`kind:"colorier"`) : figures SVG dont les parts `.part[data-i][data-f]` se colorient au toucher ;
+  `verif([[f,i]…])` → juste/faux, `sol` = data-i à colorier (pour le test). Compteur « Parts coloriées » + Valider.
+- QCM : `affiche(v)` = HTML du bouton (ex. fraction empilée), `data-v` reste le texte. `regleNom` = libellé du bouton leçon.
 - Type **dictée** (`dictee:true`) : voix française (`direFr`), boutons Écouter / Plus lentement,
   correction lettre à lettre, « Refaire mes erreurs » en fin de série. Voir le modèle ci-dessous.
+- Type **colorier** (gen `kind:"colorier"`) : `html` contient des figures avec `.part[data-i][data-f]` cliquables
+  (data-i unique, data-f = n° de figure) ; `verif([[f,i]…])` → vrai/faux ; `sol` = data-i à colorier (pour outils/test.py).
+  Compteur « Parts coloriées » et bouton Valider fournis par le moteur.
+- QCM : `affiche(v)` facultatif = HTML d'un choix (ex. fraction écrite en hauteur). `regleNom` : libellé du bouton de leçon.
 
 ## Fiches de calcul mental (maths/index.html)
 Une fabrique renvoie des calculs `{cons, q, r, rappel, astuce, pieges}`.
@@ -40,6 +47,10 @@ Monnaie (chapitre `CHM = "Utiliser la monnaie"`) : sommes en centimes ; `euro(c)
 vérifiée par `verifEuro`, « 3 € 5 » refusé, il faut « 3 € 05 »), en centimes (`"c"`) ou en euros ronds (`"n"`) ;
 `decompose(c)` = paiement avec le moins de pièces et billets.
 
+## Fractions (maths/index.html, chapitre `CHF = "Les fractions"`)
+`frac(n,d)` écrit une fraction empilée ; `bande(d,o)` / `disque(d,o)` dessinent d parts égales (`o.plein`, `o.clic`, `o.f`, `o.lab`) ;
+`lit(n,d)` = « trois quarts ». Parties : facile (QCM), colorier, dur (saisie, accents facultatifs). nb:8.
+
 ## Histoire (histoire/index.html)
 Un seul thème `hist` de type **leçon à trous** (`trous:true`) ; une leçon = un texte `{id, titre:"Leçon N · …", e, texte}`.
 `[mot]` = trou, `[mot|variante]` = variantes acceptées en difficile. Ajouter une leçon = ajouter un texte (nouvel id `h<n°>`).
@@ -51,3 +62,8 @@ oubli de l'article signalé. Indice affiché seulement pour les mots ambigus à 
 
 ## Avant livraison
 `python3 outils/test.py` doit afficher « Tout est OK ✔ » et « Erreurs JS : aucune » (QCM et saisies testés).
+
+## Fractions (maths/index.html, chapitre `CHF = "Les fractions"`)
+`frac(n, d)` écrit une fraction en hauteur ; `bande(d, o)` / `disque(d, o)` dessinent d parts égales
+(`o.plein` parts coloriées, `o.clic` + `o.f` pour colorier, `o.lab` pour écrire 1/d) ; `lit(n, d)` → « trois quarts ».
+Thèmes à 3 parties : `facile` (QCM), `colorier`, `dur` (saisie, accents facultatifs).

@@ -83,6 +83,9 @@ with sync_playwright() as p:
                             if pg.locator("#tuiles").count():
                                 for x in v.split("|"): pg.locator("#tuiles .tuile").filter(has_text=re.compile("^" + re.escape(x) + "$")).first.click()
                                 pg.click("#ok", timeout=2000)
+                            elif pg.locator(".part[data-i]").count():
+                                for i in pg.evaluate("window.__q.sol"): pg.click(f'.part[data-i="{i}"]')
+                                pg.click("#ok", timeout=2000)
                             elif pg.locator("#rep").count(): pg.fill("#rep", v); pg.click("#ok", timeout=2000)
                             else: pg.click(f'.choix button[data-v="{v}"]', timeout=2000)
                             if pg.locator("#next").count(): pg.click("#next", timeout=2000)

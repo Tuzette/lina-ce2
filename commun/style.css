@@ -198,3 +198,16 @@ a.mat:hover{transform:translateY(-2px)} a.mat:active{transform:translateY(2px);b
 .phr svg{width:100%;max-width:460px;height:auto;display:block;margin:6px auto 0}
 .schema{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;font-weight:700}
 .schema .barre-s{height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff}
+
+/* fractions : écriture et figures à colorier */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.1;margin:0 3px;font-weight:700}
+.frac>span+span{border-top:2px solid currentColor;padding:0 3px;min-width:.9em;text-align:center}
+.grosfrac{font-size:2.2rem;text-align:center}
+.part{fill:var(--carte);stroke:var(--encre);stroke-width:2}
+.part.on,.part.plein{fill:color-mix(in srgb,var(--maths) 45%,var(--carte))}
+.part[role=button]{cursor:pointer}
+.part[role=button]:not(.fige):hover{fill:color-mix(in srgb,var(--maths) 18%,var(--carte))}
+.part.on[role=button]:not(.fige):hover{fill:color-mix(in srgb,var(--maths) 55%,var(--carte))}
+.figs{display:flex;flex-direction:column;gap:10px}
+.figs .nfig{font-weight:700;font-size:.9rem}
+svg .lab{fill:var(--encre);font-weight:700;font-size:15px}
