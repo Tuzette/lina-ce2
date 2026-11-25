@@ -33,6 +33,17 @@ THEMES.push({ id:"d9", nom:"9 · La lettre e", e:"🟣", c:"var(--dictee)", dict
     { id:"t9",  nom:"Tout mélangé", e:"🏆" },
   ] });
 
+/* ---- 10 · Les accents (liste ; mémo à ajouter) ---- */
+const L10A = mots([["fêter", VERBE], ["décorer", VERBE], ["déjà"], ["le lièvre"], ["la Chine"]]);
+const L10B = mots([["préparer", VERBE], ["là-bas"], ["un pétard"], ["le défilé"], ["drôle"]]);
+THEMES.push({ id:"d10", nom:"10 · Les accents", e:"🟣", c:"var(--dictee)", dictee:true, muet:true, maitrise:2,
+  mots:[...L10A, ...L10B],
+  parties:[
+    { id:"l10a", nom:"Liste 10 •", e:"✏️", mots:ids(L10A) },
+    { id:"l10b", nom:"Liste 10 ••", e:"✏️", mots:ids(L10B) },
+    { id:"t10",  nom:"Tout mélangé", e:"🏆" },
+  ] });
+
 demarrer({ titre:"Dictée", e:"✏️" });
 </script>
 </body>
