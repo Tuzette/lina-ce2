@@ -33,14 +33,18 @@ THEMES.push({ id:"d9", nom:"9 · La lettre e", e:"🟣", c:"var(--dictee)", dict
     { id:"t9",  nom:"Tout mélangé", e:"🏆" },
   ] });
 
-/* ---- 10 · Les accents (liste ; mémo à ajouter) ---- */
+/* ---- 10 · Les accents (liste + mémo) ---- */
 const L10A = mots([["fêter", VERBE], ["décorer", VERBE], ["déjà"], ["le lièvre"], ["la Chine"]]);
 const L10B = mots([["préparer", VERBE], ["là-bas"], ["un pétard"], ["le défilé"], ["drôle"]]);
+const M10 = mots([["une école"], ["des légumes"], ["un vélo"], ["léger", "le contraire de lourd"], ["écouter", VERBE], ["un marché"],
+  ["après", "le contraire de avant"], ["une sorcière"], ["un lièvre"], ["déjà"], ["où", "comme dans : où vas-tu ?"],
+  ["un rêve"], ["une fête"], ["un château"], ["sûr", "comme dans : j'en suis sûr"], ["croître", VERBE], ["bientôt"]]);
 THEMES.push({ id:"d10", nom:"10 · Les accents", e:"🟣", c:"var(--dictee)", dictee:true, muet:true, maitrise:2,
-  mots:[...L10A, ...L10B],
+  mots:[...L10A, ...L10B, ...M10.filter(w => !ids([...L10A, ...L10B]).includes(w.en))],
   parties:[
     { id:"l10a", nom:"Liste 10 •", e:"✏️", mots:ids(L10A) },
     { id:"l10b", nom:"Liste 10 ••", e:"✏️", mots:ids(L10B) },
+    { id:"m10", nom:"Les mots du mémo", e:"🗂️", mots:ids(M10) },
     { id:"t10",  nom:"Tout mélangé", e:"🏆" },
   ] });
 
